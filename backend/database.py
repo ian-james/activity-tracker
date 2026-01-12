@@ -1,0 +1,57 @@
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
+
+DATABASE_PATH = Path(__file__).parent / "activity_tracker.db"
+
+
+def get_connection():
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+@contextmanager
+def get_db():
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def init_db():
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                points INTEGER NOT NULL DEFAULT 10,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                days_of_week TEXT DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Migration: add days_of_week column if it doesn't exist
+        cursor.execute("PRAGMA table_info(activities)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'days_of_week' not in columns:
+            cursor.execute("ALTER TABLE activities ADD COLUMN days_of_week TEXT DEFAULT NULL")
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                activity_id INTEGER NOT NULL,
+                completed_at DATE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (activity_id) REFERENCES activities (id),
+                UNIQUE(activity_id, completed_at)
+            )
+        """)
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_logs_date ON activity_logs(completed_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_logs_activity ON activity_logs(activity_id)")
