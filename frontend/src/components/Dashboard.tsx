@@ -13,6 +13,7 @@ function formatDate(dateStr: string): string {
 export function Dashboard() {
   const { history, loading, fetchHistory } = useHistory();
   const [timeRange, setTimeRange] = useState<TimeRange>(7);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   useEffect(() => {
     fetchHistory(timeRange);
@@ -82,42 +83,59 @@ export function Dashboard() {
 
       {/* Daily Breakdown Table */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h3 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Daily Breakdown</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 text-gray-900 dark:text-gray-100">Date</th>
-                <th className="text-right py-2 text-gray-900 dark:text-gray-100">Completed</th>
-                <th className="text-right py-2 text-gray-900 dark:text-gray-100">Points</th>
-                <th className="text-right py-2 text-gray-900 dark:text-gray-100">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...history].reverse().map((entry) => (
-                <tr key={entry.date} className="border-b border-gray-200 dark:border-gray-700 last:border-0">
-                  <td className="py-2 text-gray-800 dark:text-gray-200">{formatDate(entry.date)}</td>
-                  <td className="text-right py-2 text-gray-800 dark:text-gray-200">
-                    {entry.completed_count}/{entry.total_activities}
-                  </td>
-                  <td className="text-right py-2 text-gray-800 dark:text-gray-200">
-                    {entry.total_points}/{entry.max_possible_points}
-                  </td>
-                  <td className="text-right py-2">
-                    <span className={`font-medium ${
-                      entry.percentage >= 80 ? 'text-green-600 dark:text-green-400' :
-                      entry.percentage >= 60 ? 'text-blue-600 dark:text-blue-400' :
-                      entry.percentage >= 40 ? 'text-yellow-600 dark:text-yellow-400' :
-                      'text-red-500 dark:text-red-400'
-                    }`}>
-                      {entry.percentage}%
-                    </span>
-                  </td>
+        <button
+          onClick={() => setShowBreakdown(!showBreakdown)}
+          className="flex items-center justify-between w-full text-left"
+        >
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Daily Breakdown</h3>
+          <svg
+            className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+              showBreakdown ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showBreakdown && (
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-2 text-gray-900 dark:text-gray-100">Date</th>
+                  <th className="text-right py-2 text-gray-900 dark:text-gray-100">Completed</th>
+                  <th className="text-right py-2 text-gray-900 dark:text-gray-100">Points</th>
+                  <th className="text-right py-2 text-gray-900 dark:text-gray-100">Score</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {[...history].reverse().map((entry) => (
+                  <tr key={entry.date} className="border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <td className="py-2 text-gray-800 dark:text-gray-200">{formatDate(entry.date)}</td>
+                    <td className="text-right py-2 text-gray-800 dark:text-gray-200">
+                      {entry.completed_count}/{entry.total_activities}
+                    </td>
+                    <td className="text-right py-2 text-gray-800 dark:text-gray-200">
+                      {entry.total_points}/{entry.max_possible_points}
+                    </td>
+                    <td className="text-right py-2">
+                      <span className={`font-medium ${
+                        entry.percentage >= 80 ? 'text-green-600 dark:text-green-400' :
+                        entry.percentage >= 60 ? 'text-blue-600 dark:text-blue-400' :
+                        entry.percentage >= 40 ? 'text-yellow-600 dark:text-yellow-400' :
+                        'text-red-500 dark:text-red-400'
+                      }`}>
+                        {entry.percentage}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

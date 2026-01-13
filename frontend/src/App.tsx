@@ -27,6 +27,7 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('tracker');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showActivities, setShowActivities] = useState(true);
 
   const dateStr = formatDate(currentDate);
   const { activities, fetchActivities, createActivity, deleteActivity } = useActivities();
@@ -144,14 +145,31 @@ function App() {
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Today's Activities</h2>
-              <DailyTracker
-                activities={activities}
-                logs={logs}
-                date={dateStr}
-                currentDate={currentDate}
-                onToggle={handleToggle}
-              />
+              <button
+                onClick={() => setShowActivities(!showActivities)}
+                className="flex items-center justify-between w-full mb-3"
+              >
+                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Today's Activities</h2>
+                <svg
+                  className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+                    showActivities ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showActivities && (
+                <DailyTracker
+                  activities={activities}
+                  logs={logs}
+                  date={dateStr}
+                  currentDate={currentDate}
+                  onToggle={handleToggle}
+                />
+              )}
             </div>
 
             <div>
