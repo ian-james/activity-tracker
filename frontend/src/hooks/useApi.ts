@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Activity, ActivityCreate, Log, LogCreate, Score } from '../types';
+import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry } from '../types';
 
 const API_BASE = '/api';
 
@@ -98,4 +98,21 @@ export function useScores() {
   }, []);
 
   return { dailyScore, weeklyScore, monthlyScore, fetchDailyScore, fetchWeeklyScore, fetchMonthlyScore };
+}
+
+export function useHistory() {
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchHistory = useCallback(async (days: number = 7) => {
+    setLoading(true);
+    try {
+      const data = await fetchApi<HistoryEntry[]>(`/scores/history?days=${days}`);
+      setHistory(data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { history, loading, fetchHistory };
 }

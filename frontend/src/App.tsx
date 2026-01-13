@@ -4,7 +4,10 @@ import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
 import { DailyTracker } from './components/DailyTracker';
 import { ScoreDisplay } from './components/ScoreDisplay';
+import { Dashboard } from './components/Dashboard';
 import { DayOfWeek } from './types';
+
+type View = 'tracker' | 'dashboard' | 'manage';
 
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -21,7 +24,7 @@ function formatDisplayDate(date: Date): string {
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [showManage, setShowManage] = useState(false);
+  const [view, setView] = useState<View>('tracker');
   const [showAddForm, setShowAddForm] = useState(false);
 
   const dateStr = formatDate(currentDate);
@@ -73,17 +76,30 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-2xl mx-auto p-4">
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Activity Tracker</h1>
-          <button
-            onClick={() => setShowManage(!showManage)}
-            className="text-blue-500 hover:text-blue-700 font-medium"
-          >
-            {showManage ? 'Back to Tracker' : 'Manage Activities'}
-          </button>
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Activity Tracker</h1>
+          <nav className="flex gap-1 bg-white rounded-lg p-1 shadow">
+            {[
+              { id: 'tracker', label: 'Today' },
+              { id: 'dashboard', label: 'Dashboard' },
+              { id: 'manage', label: 'Activities' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setView(tab.id as View)}
+                className={`flex-1 py-2 px-4 rounded text-sm font-medium transition-colors ${
+                  view === tab.id
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </header>
 
-        {showManage ? (
+        {view === 'manage' && (
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Your Activities</h2>
@@ -101,7 +117,11 @@ function App() {
             )}
             <ActivityList activities={activities} onDelete={handleDeleteActivity} />
           </div>
-        ) : (
+        )}
+
+        {view === 'dashboard' && <Dashboard />}
+
+        {view === 'tracker' && (
           <div className="space-y-6">
             <div className="flex items-center justify-center gap-4">
               <button

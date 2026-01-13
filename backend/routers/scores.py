@@ -94,3 +94,24 @@ def get_monthly_score(year: int = Query(...), month: int = Query(...)):
     else:
         end_date = date(year, month + 1, 1) - timedelta(days=1)
     return calculate_score(start_date, end_date, "monthly")
+
+
+@router.get("/history")
+def get_score_history(days: int = Query(default=7, ge=1, le=90)):
+    """Get daily scores for the past N days."""
+    today = date.today()
+    history = []
+
+    for i in range(days - 1, -1, -1):
+        day = today - timedelta(days=i)
+        score = calculate_score(day, day, "daily")
+        history.append({
+            "date": day.isoformat(),
+            "total_points": score.total_points,
+            "max_possible_points": score.max_possible_points,
+            "percentage": score.percentage,
+            "completed_count": score.completed_count,
+            "total_activities": score.total_activities,
+        })
+
+    return history

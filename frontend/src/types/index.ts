@@ -47,3 +47,12 @@ export interface Score {
   total_activities: number;
   percentage: number;
 }
+
+export interface HistoryEntry {
+  date: string;
+  total_points: number;
+  max_possible_points: number;
+  percentage: number;
+  completed_count: number;
+  total_activities: number;
+}
