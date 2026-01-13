@@ -8,6 +8,7 @@ A daily activity tracking application with scoring and day-of-week scheduling. T
 - **Day-of-Week Scheduling**: Schedule activities for specific days (e.g., Cycling MWF, Yoga T/Th)
 - **Daily Tracking**: Check off completed activities with a simple click
 - **Score Calculation**: View daily, weekly, and monthly scores (points + percentages)
+- **Dashboard**: Historical view with bar charts, summary stats, and daily breakdown
 - **Template Activities**: Quick-add common activities like Workout, Cycling, Yoga, Vitamins
 
 ## Tech Stack
@@ -46,16 +47,23 @@ The app will be available at http://localhost:5173
 
 ## Usage
 
-1. **Add Activities**: Click "Manage Activities" → "Add Activity"
-   - Use quick-add templates or create custom activities
-   - Set point values (5, 10, 25, 50, 100, 200)
-   - Optionally schedule for specific days of the week
+The app has three main tabs:
 
-2. **Track Daily Progress**: Check off activities as you complete them
+### Today
+- Check off activities as you complete them
+- View daily, weekly, and monthly scores with progress bars
+- Navigate between dates using the arrow buttons
 
-3. **View Scores**: See your daily, weekly, and monthly scores with progress bars
+### Dashboard
+- View historical progress with a bar chart (7, 14, or 30 days)
+- Summary cards showing average completion, total points, and best day
+- Daily breakdown table with detailed stats
 
-4. **Navigate Dates**: Use the arrows to view past or future days
+### Activities
+- Add new activities using quick-add templates or custom form
+- Set point values (5, 10, 25, 50, 100, 200)
+- Schedule activities for specific days of the week
+- Delete activities you no longer need
 
 ## API Endpoints
 
@@ -71,6 +79,7 @@ The app will be available at http://localhost:5173
 | GET | /api/scores/daily?date={date} | Get daily score |
 | GET | /api/scores/weekly?date={date} | Get weekly score |
 | GET | /api/scores/monthly?year={year}&month={month} | Get monthly score |
+| GET | /api/scores/history?days={days} | Get historical daily scores (default 7, max 90) |
 
 ## License
 
