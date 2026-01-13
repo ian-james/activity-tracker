@@ -54,11 +54,11 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow mb-4">
-      <h3 className="font-semibold mb-3">Add New Activity</h3>
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+      <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-100">Add New Activity</h3>
 
       <div className="mb-4">
-        <p className="text-sm text-gray-600 mb-2">Quick add:</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Quick add:</p>
         <div className="flex flex-wrap gap-2">
           {TEMPLATES.map((template) => (
             <button
@@ -66,11 +66,11 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
               type="button"
               onClick={() => handleTemplateClick(template)}
               disabled={submitting}
-              className="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded text-sm disabled:opacity-50"
+              className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 text-gray-800 dark:text-gray-200"
             >
               {template.name} (+{template.points})
               {template.days && (
-                <span className="text-gray-500 ml-1">
+                <span className="text-gray-500 dark:text-gray-400 ml-1">
                   [{template.days.map(d => d.charAt(0).toUpperCase()).join('')}]
                 </span>
               )}
@@ -79,8 +79,8 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
         </div>
       </div>
 
-      <div className="border-t pt-4">
-        <p className="text-sm text-gray-600 mb-2">Or create custom:</p>
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Or create custom:</p>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex gap-3">
             <input
@@ -88,13 +88,13 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Activity name"
-              className="flex-1 border rounded px-3 py-2"
+              className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
               disabled={submitting}
             />
             <select
               value={points}
               onChange={(e) => setPoints(Number(e.target.value))}
-              className="w-24 border rounded px-3 py-2"
+              className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
               disabled={submitting}
             >
               {POINT_OPTIONS.map((p) => (
@@ -106,7 +106,7 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
           </div>
 
           <div>
-            <p className="text-sm text-gray-600 mb-2">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               Schedule (leave empty for every day):
             </p>
             <div className="flex gap-1">
@@ -118,7 +118,7 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
                   className={`w-10 h-10 rounded text-sm font-medium transition-colors ${
                     selectedDays.includes(day.value)
                       ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'
                   }`}
                   disabled={submitting}
                 >
@@ -139,7 +139,7 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
             <button
               type="button"
               onClick={onCancel}
-              className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+              className="bg-gray-300 dark:bg-gray-600 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200"
             >
               Cancel
             </button>

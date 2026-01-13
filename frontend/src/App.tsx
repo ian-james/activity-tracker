@@ -5,9 +5,10 @@ import { ActivityList } from './components/ActivityList';
 import { DailyTracker } from './components/DailyTracker';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { Dashboard } from './components/Dashboard';
+import { Settings } from './components/Settings';
 import { DayOfWeek } from './types';
 
-type View = 'tracker' | 'dashboard' | 'manage';
+type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
 
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -74,15 +75,16 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto p-4">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Activity Tracker</h1>
-          <nav className="flex gap-1 bg-white rounded-lg p-1 shadow">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Activity Tracker</h1>
+          <nav className="flex gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow">
             {[
               { id: 'tracker', label: 'Today' },
               { id: 'dashboard', label: 'Dashboard' },
               { id: 'manage', label: 'Activities' },
+              { id: 'settings', label: 'Settings' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -90,7 +92,7 @@ function App() {
                 className={`flex-1 py-2 px-4 rounded text-sm font-medium transition-colors ${
                   view === tab.id
                     ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 {tab.label}
@@ -102,7 +104,7 @@ function App() {
         {view === 'manage' && (
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Your Activities</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Activities</h2>
               {!showAddForm && (
                 <button
                   onClick={() => setShowAddForm(true)}
@@ -121,26 +123,28 @@ function App() {
 
         {view === 'dashboard' && <Dashboard />}
 
+        {view === 'settings' && <Settings />}
+
         {view === 'tracker' && (
           <div className="space-y-6">
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => changeDate(-1)}
-                className="text-2xl px-3 py-1 hover:bg-gray-200 rounded"
+                className="text-2xl px-3 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-800 dark:text-gray-100"
               >
                 &lt;
               </button>
-              <span className="text-lg font-medium">{formatDisplayDate(currentDate)}</span>
+              <span className="text-lg font-medium text-gray-800 dark:text-gray-100">{formatDisplayDate(currentDate)}</span>
               <button
                 onClick={() => changeDate(1)}
-                className="text-2xl px-3 py-1 hover:bg-gray-200 rounded"
+                className="text-2xl px-3 py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-800 dark:text-gray-100"
               >
                 &gt;
               </button>
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold mb-3">Today's Activities</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Today's Activities</h2>
               <DailyTracker
                 activities={activities}
                 logs={logs}
@@ -151,7 +155,7 @@ function App() {
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold mb-3">Scores</h2>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Scores</h2>
               <ScoreDisplay
                 dailyScore={dailyScore}
                 weeklyScore={weeklyScore}

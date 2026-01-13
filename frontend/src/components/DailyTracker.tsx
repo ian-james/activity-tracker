@@ -26,7 +26,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   if (activities.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-8">
+      <div className="text-gray-500 dark:text-gray-400 text-center py-8">
         No activities to track. Add some activities first!
       </div>
     );
@@ -34,7 +34,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   if (scheduledActivities.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-8">
+      <div className="text-gray-500 dark:text-gray-400 text-center py-8">
         No activities scheduled for this day.
       </div>
     );
@@ -52,16 +52,16 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
             onClick={() => onToggle(activity.id, !isCompleted, log?.id)}
             className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors ${
               isCompleted
-                ? 'bg-green-100 border-2 border-green-400'
-                : 'bg-white border-2 border-gray-200 hover:border-gray-300'
+                ? 'bg-green-100 dark:bg-green-900 border-2 border-green-400 dark:border-green-500'
+                : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
             }`}
           >
             <div className="flex items-center gap-3">
               <div
                 className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
                   isCompleted
-                    ? 'bg-green-500 border-green-500 text-white'
-                    : 'border-gray-400'
+                    ? 'bg-green-500 dark:bg-green-600 border-green-500 dark:border-green-600 text-white'
+                    : 'border-gray-400 dark:border-gray-500'
                 }`}
               >
                 {isCompleted && (
@@ -75,17 +75,17 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                 )}
               </div>
               <div>
-                <span className={`font-medium ${isCompleted ? 'text-green-700' : ''}`}>
+                <span className={`font-medium ${isCompleted ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'}`}>
                   {activity.name}
                 </span>
                 {activity.days_of_week && (
-                  <span className="text-xs text-gray-400 ml-2">
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ml-2">
                     [{activity.days_of_week.map(d => d.charAt(0).toUpperCase()).join('')}]
                   </span>
                 )}
               </div>
             </div>
-            <span className={`font-semibold ${isCompleted ? 'text-green-600' : 'text-gray-500'}`}>
+            <span className={`font-semibold ${isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
               +{activity.points} pts
             </span>
           </div>

@@ -8,7 +8,7 @@ interface Props {
 export function ActivityList({ activities, onDelete }: Props) {
   if (activities.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-8">
+      <div className="text-gray-500 dark:text-gray-400 text-center py-8">
         No activities yet. Add one to get started!
       </div>
     );
@@ -27,18 +27,18 @@ export function ActivityList({ activities, onDelete }: Props) {
       {activities.map((activity) => (
         <div
           key={activity.id}
-          className="flex items-center justify-between bg-white p-3 rounded-lg shadow"
+          className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg shadow"
         >
           <div>
-            <span className="font-medium">{activity.name}</span>
-            <span className="text-gray-500 ml-2">+{activity.points} pts</span>
-            <div className="text-xs text-gray-400">
+            <span className="font-medium text-gray-800 dark:text-gray-200">{activity.name}</span>
+            <span className="text-gray-500 dark:text-gray-400 ml-2">+{activity.points} pts</span>
+            <div className="text-xs text-gray-400 dark:text-gray-500">
               {formatDays(activity.days_of_week)}
             </div>
           </div>
           <button
             onClick={() => onDelete(activity.id)}
-            className="text-red-500 hover:text-red-700 px-2"
+            className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2"
           >
             Delete
           </button>
