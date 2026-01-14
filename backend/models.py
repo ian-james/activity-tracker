@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import date, datetime
 from typing import Optional, List
+import re
 
 # Valid days: mon, tue, wed, thu, fri, sat, sun
 VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -12,12 +13,94 @@ class ActivityCreate(BaseModel):
     days_of_week: Optional[List[str]] = None  # None means every day
     category_id: Optional[int] = None
 
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+    @field_validator('points')
+    @classmethod
+    def validate_points(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError('Points must be at least 1')
+        if v > 1000:
+            raise ValueError('Points cannot exceed 1000')
+        return v
+
+    @field_validator('days_of_week')
+    @classmethod
+    def validate_days(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None or len(v) == 0:
+            return None
+
+        invalid_days = [day for day in v if day not in VALID_DAYS]
+        if invalid_days:
+            raise ValueError(f'Invalid days: {invalid_days}. Must be one of: {VALID_DAYS}')
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_days = []
+        for day in v:
+            if day not in seen:
+                seen.add(day)
+                unique_days.append(day)
+
+        return unique_days if unique_days else None
+
 
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     points: Optional[int] = None
     days_of_week: Optional[List[str]] = None
     category_id: Optional[int] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+    @field_validator('points')
+    @classmethod
+    def validate_points(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if v < 1:
+            raise ValueError('Points must be at least 1')
+        if v > 1000:
+            raise ValueError('Points cannot exceed 1000')
+        return v
+
+    @field_validator('days_of_week')
+    @classmethod
+    def validate_days(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None or len(v) == 0:
+            return None
+
+        invalid_days = [day for day in v if day not in VALID_DAYS]
+        if invalid_days:
+            raise ValueError(f'Invalid days: {invalid_days}. Must be one of: {VALID_DAYS}')
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_days = []
+        for day in v:
+            if day not in seen:
+                seen.add(day)
+                unique_days.append(day)
+
+        return unique_days if unique_days else None
 
 
 class Activity(BaseModel):
@@ -58,11 +141,49 @@ class CategoryCreate(BaseModel):
     color: str = '#3B82F6'
     icon: Optional[str] = None
 
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty or whitespace only')
+        if len(v) > 50:
+            raise ValueError('Name cannot exceed 50 characters')
+        return v
+
+    @field_validator('color')
+    @classmethod
+    def validate_color(cls, v: str) -> str:
+        if not re.match(r'^#[0-9A-Fa-f]{6}$', v):
+            raise ValueError('Color must be a valid hex color code (e.g., #3B82F6)')
+        return v.upper()  # Normalize to uppercase
+
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty or whitespace only')
+        if len(v) > 50:
+            raise ValueError('Name cannot exceed 50 characters')
+        return v
+
+    @field_validator('color')
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if not re.match(r'^#[0-9A-Fa-f]{6}$', v):
+            raise ValueError('Color must be a valid hex color code (e.g., #3B82F6)')
+        return v.upper()  # Normalize to uppercase
 
 
 class Category(BaseModel):

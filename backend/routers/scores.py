@@ -117,9 +117,31 @@ def get_score_history(days: int = Query(default=7, ge=1, le=90)):
     return history
 
 
+def calculate_max_points_and_activities(activities: list, start_date: date, end_date: date) -> tuple[int, int]:
+    """Calculate max possible points and total scheduled activities for a period.
+
+    Helper function to avoid code duplication.
+    """
+    max_possible_points = 0
+    total_scheduled_activities = 0
+    current = start_date
+
+    while current <= end_date:
+        for activity in activities:
+            if is_scheduled_for_day(activity["days_of_week"], current):
+                max_possible_points += activity["points"]
+                total_scheduled_activities += 1
+        current += timedelta(days=1)
+
+    return max_possible_points, total_scheduled_activities
+
+
 @router.get("/category-summary", response_model=list[CategorySummary])
 def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
-    """Get score summaries grouped by category for the past N days."""
+    """Get score summaries grouped by category for the past N days.
+
+    Uses a single query to fetch all data, then processes in memory to avoid N+1 query problem.
+    """
     today = date.today()
     start_date = today - timedelta(days=days - 1)
     end_date = today
@@ -127,72 +149,114 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # Get all active categories
-        cursor.execute("SELECT id, name, color FROM categories WHERE is_active = 1 ORDER BY name")
-        categories = cursor.fetchall()
+        # Fetch ALL data in ONE query using LEFT JOINs
+        # This eliminates the N+1 query problem
+        cursor.execute("""
+            SELECT
+                c.id as category_id,
+                c.name as category_name,
+                c.color as category_color,
+                a.id as activity_id,
+                a.points,
+                a.days_of_week,
+                al.completed_at
+            FROM categories c
+            LEFT JOIN activities a ON a.category_id = c.id AND a.is_active = 1
+            LEFT JOIN activity_logs al ON al.activity_id = a.id
+                AND al.completed_at >= ? AND al.completed_at <= ?
+            WHERE c.is_active = 1
+            ORDER BY c.name, a.id
+        """, (start_date.isoformat(), end_date.isoformat()))
 
-        # Get all active activities
-        cursor.execute("SELECT * FROM activities WHERE is_active = 1")
-        activities = cursor.fetchall()
+        category_rows = cursor.fetchall()
 
-        # Group activities by category
-        category_activities = {}
-        uncategorized_activities = []
+        # Fetch uncategorized activities separately
+        cursor.execute("""
+            SELECT
+                a.id as activity_id,
+                a.points,
+                a.days_of_week,
+                al.completed_at
+            FROM activities a
+            LEFT JOIN activity_logs al ON al.activity_id = a.id
+                AND al.completed_at >= ? AND al.completed_at <= ?
+            WHERE a.is_active = 1 AND a.category_id IS NULL
+            ORDER BY a.id
+        """, (start_date.isoformat(), end_date.isoformat()))
 
-        for activity in activities:
-            if activity["category_id"] is None:
-                uncategorized_activities.append(activity)
-            else:
-                if activity["category_id"] not in category_activities:
-                    category_activities[activity["category_id"]] = []
-                category_activities[activity["category_id"]].append(activity)
+        uncategorized_rows = cursor.fetchall()
 
+        # Process results in memory (much faster than multiple DB queries)
+        category_data = {}
+
+        # Group data by category
+        for row in category_rows:
+            cat_id = row['category_id']
+            if cat_id not in category_data:
+                category_data[cat_id] = {
+                    'name': row['category_name'],
+                    'color': row['category_color'],
+                    'activities': {},
+                    'logs': []
+                }
+
+            if row['activity_id']:
+                if row['activity_id'] not in category_data[cat_id]['activities']:
+                    category_data[cat_id]['activities'][row['activity_id']] = {
+                        'points': row['points'],
+                        'days_of_week': row['days_of_week']
+                    }
+
+                if row['completed_at']:
+                    category_data[cat_id]['logs'].append({
+                        'points': row['points'],
+                        'completed_at': row['completed_at']
+                    })
+
+        # Process uncategorized activities
+        uncategorized_data = {
+            'activities': {},
+            'logs': []
+        }
+
+        for row in uncategorized_rows:
+            if row['activity_id'] not in uncategorized_data['activities']:
+                uncategorized_data['activities'][row['activity_id']] = {
+                    'points': row['points'],
+                    'days_of_week': row['days_of_week']
+                }
+
+            if row['completed_at']:
+                uncategorized_data['logs'].append({
+                    'points': row['points'],
+                    'completed_at': row['completed_at']
+                })
+
+        # Now calculate summaries from in-memory data
         summaries = []
 
-        # Calculate summary for each category
-        for category in categories:
-            category_id = category["id"]
-            if category_id not in category_activities:
+        for cat_id, data in category_data.items():
+            if not data['activities']:
                 continue
 
-            activities_in_category = category_activities[category_id]
-            activity_ids = [a["id"] for a in activities_in_category]
+            # Convert activities dict to list for calculation function
+            activities_list = [
+                {'points': v['points'], 'days_of_week': v['days_of_week']}
+                for v in data['activities'].values()
+            ]
 
-            # Calculate max possible points
-            max_possible_points = 0
-            total_scheduled_activities = 0
-            current = start_date
-            while current <= end_date:
-                for activity in activities_in_category:
-                    if is_scheduled_for_day(activity["days_of_week"], current):
-                        max_possible_points += activity["points"]
-                        total_scheduled_activities += 1
-                current += timedelta(days=1)
+            max_possible_points, total_scheduled_activities = calculate_max_points_and_activities(
+                activities_list, start_date, end_date
+            )
 
-            # Get completed activities for this category
-            if activity_ids:
-                placeholders = ','.join('?' * len(activity_ids))
-                cursor.execute(f"""
-                    SELECT al.activity_id, al.completed_at, a.points
-                    FROM activity_logs al
-                    JOIN activities a ON al.activity_id = a.id
-                    WHERE al.activity_id IN ({placeholders})
-                    AND al.completed_at >= ? AND al.completed_at <= ?
-                """, (*activity_ids, start_date.isoformat(), end_date.isoformat()))
-                logs = cursor.fetchall()
-
-                total_points = sum(log["points"] for log in logs)
-                completed_count = len(logs)
-            else:
-                total_points = 0
-                completed_count = 0
-
+            total_points = sum(log['points'] for log in data['logs'])
+            completed_count = len(data['logs'])
             percentage = (completed_count / total_scheduled_activities * 100) if total_scheduled_activities > 0 else 0.0
 
             summaries.append(CategorySummary(
-                category_id=category_id,
-                category_name=category["name"],
-                category_color=category["color"],
+                category_id=cat_id,
+                category_name=data['name'],
+                category_color=data['color'],
                 total_points=total_points,
                 max_possible_points=max_possible_points,
                 completed_count=completed_count,
@@ -201,33 +265,18 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
             ))
 
         # Add uncategorized summary if there are uncategorized activities
-        if uncategorized_activities:
-            activity_ids = [a["id"] for a in uncategorized_activities]
+        if uncategorized_data['activities']:
+            activities_list = [
+                {'points': v['points'], 'days_of_week': v['days_of_week']}
+                for v in uncategorized_data['activities'].values()
+            ]
 
-            # Calculate max possible points
-            max_possible_points = 0
-            total_scheduled_activities = 0
-            current = start_date
-            while current <= end_date:
-                for activity in uncategorized_activities:
-                    if is_scheduled_for_day(activity["days_of_week"], current):
-                        max_possible_points += activity["points"]
-                        total_scheduled_activities += 1
-                current += timedelta(days=1)
+            max_possible_points, total_scheduled_activities = calculate_max_points_and_activities(
+                activities_list, start_date, end_date
+            )
 
-            # Get completed activities
-            placeholders = ','.join('?' * len(activity_ids))
-            cursor.execute(f"""
-                SELECT al.activity_id, al.completed_at, a.points
-                FROM activity_logs al
-                JOIN activities a ON al.activity_id = a.id
-                WHERE al.activity_id IN ({placeholders})
-                AND al.completed_at >= ? AND al.completed_at <= ?
-            """, (*activity_ids, start_date.isoformat(), end_date.isoformat()))
-            logs = cursor.fetchall()
-
-            total_points = sum(log["points"] for log in logs)
-            completed_count = len(logs)
+            total_points = sum(log['points'] for log in uncategorized_data['logs'])
+            completed_count = len(uncategorized_data['logs'])
             percentage = (completed_count / total_scheduled_activities * 100) if total_scheduled_activities > 0 else 0.0
 
             summaries.append(CategorySummary(

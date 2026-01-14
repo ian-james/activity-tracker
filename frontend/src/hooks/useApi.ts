@@ -12,27 +12,60 @@ import {
 
 const API_BASE = '/api';
 
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+interface ApiError {
+  detail: string;
+  status: number;
+}
+
+class ApiException extends Error {
+  constructor(public status: number, public detail: string) {
+    super(detail);
+    this.name = 'ApiException';
   }
-  return res.json();
+}
+
+async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+  try {
+    const res = await fetch(`${API_BASE}${url}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    if (!res.ok) {
+      // Try to parse error detail from response
+      let errorDetail = `API error: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorDetail = errorData.detail || errorDetail;
+      } catch {
+        // If JSON parsing fails, use status text
+        errorDetail = res.statusText || errorDetail;
+      }
+      throw new ApiException(res.status, errorDetail);
+    }
+
+    return res.json();
+  } catch (err) {
+    if (err instanceof ApiException) {
+      throw err;
+    }
+    // Network errors, etc.
+    throw new ApiException(0, err instanceof Error ? err.message : 'Network error');
+  }
 }
 
 export function useActivities() {
   const { useMockData } = useMockDataContext();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchActivities = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (useMockData) {
         // Use mock data
@@ -42,6 +75,10 @@ export function useActivities() {
         const data = await fetchApi<Activity[]>('/activities');
         setActivities(data);
       }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch activities');
+      setError(error);
+      console.error('Error fetching activities:', error);
     } finally {
       setLoading(false);
     }
@@ -53,11 +90,19 @@ export function useActivities() {
       console.log('Mock mode: Create activity ignored', activity);
       return;
     }
-    await fetchApi<Activity>('/activities', {
-      method: 'POST',
-      body: JSON.stringify(activity),
-    });
-    await fetchActivities();
+
+    setError(null);
+    try {
+      await fetchApi<Activity>('/activities', {
+        method: 'POST',
+        body: JSON.stringify(activity),
+      });
+      await fetchActivities();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to create activity');
+      setError(error);
+      throw error; // Re-throw so calling component can handle it
+    }
   }, [fetchActivities, useMockData]);
 
   const deleteActivity = useCallback(async (id: number) => {
@@ -66,11 +111,19 @@ export function useActivities() {
       console.log('Mock mode: Delete activity ignored', id);
       return;
     }
-    await fetchApi(`/activities/${id}`, { method: 'DELETE' });
-    await fetchActivities();
+
+    setError(null);
+    try {
+      await fetchApi(`/activities/${id}`, { method: 'DELETE' });
+      await fetchActivities();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to delete activity');
+      setError(error);
+      throw error;
+    }
   }, [fetchActivities, useMockData]);
 
-  return { activities, loading, fetchActivities, createActivity, deleteActivity };
+  return { activities, loading, error, fetchActivities, createActivity, deleteActivity };
 }
 
 export function useLogs(date: string) {
@@ -184,9 +237,11 @@ export function useCategories() {
   const { useMockData } = useMockDataContext();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (useMockData) {
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -195,6 +250,10 @@ export function useCategories() {
         const data = await fetchApi<Category[]>('/categories');
         setCategories(data);
       }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch categories');
+      setError(error);
+      console.error('Error fetching categories:', error);
     } finally {
       setLoading(false);
     }
@@ -205,11 +264,19 @@ export function useCategories() {
       console.log('Mock mode: Create category ignored', category);
       return;
     }
-    await fetchApi<Category>('/categories', {
-      method: 'POST',
-      body: JSON.stringify(category),
-    });
-    await fetchCategories();
+
+    setError(null);
+    try {
+      await fetchApi<Category>('/categories', {
+        method: 'POST',
+        body: JSON.stringify(category),
+      });
+      await fetchCategories();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to create category');
+      setError(error);
+      throw error;
+    }
   }, [fetchCategories, useMockData]);
 
   const updateCategory = useCallback(async (id: number, category: CategoryUpdate) => {
@@ -217,11 +284,19 @@ export function useCategories() {
       console.log('Mock mode: Update category ignored', id, category);
       return;
     }
-    await fetchApi<Category>(`/categories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(category),
-    });
-    await fetchCategories();
+
+    setError(null);
+    try {
+      await fetchApi<Category>(`/categories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(category),
+      });
+      await fetchCategories();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to update category');
+      setError(error);
+      throw error;
+    }
   }, [fetchCategories, useMockData]);
 
   const deleteCategory = useCallback(async (id: number) => {
@@ -229,11 +304,19 @@ export function useCategories() {
       console.log('Mock mode: Delete category ignored', id);
       return;
     }
-    await fetchApi(`/categories/${id}`, { method: 'DELETE' });
-    await fetchCategories();
+
+    setError(null);
+    try {
+      await fetchApi(`/categories/${id}`, { method: 'DELETE' });
+      await fetchCategories();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to delete category');
+      setError(error);
+      throw error;
+    }
   }, [fetchCategories, useMockData]);
 
-  return { categories, loading, fetchCategories, createCategory, updateCategory, deleteCategory };
+  return { categories, loading, error, fetchCategories, createCategory, updateCategory, deleteCategory };
 }
 
 export function useCategorySummary() {

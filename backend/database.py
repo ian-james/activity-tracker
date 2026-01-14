@@ -1,13 +1,19 @@
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
+import logging
+import os
 
-DATABASE_PATH = Path(__file__).parent / "activity_tracker.db"
+logger = logging.getLogger(__name__)
+
+DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).parent / "activity_tracker.db"))
 
 
 def get_connection():
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
+    # Enable foreign key constraints (disabled by default in SQLite)
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
@@ -17,6 +23,10 @@ def get_db():
     try:
         yield conn
         conn.commit()
+    except Exception as e:
+        logger.error(f"Database transaction failed: {e}")
+        conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -58,6 +68,8 @@ def init_db():
         cursor.execute("PRAGMA table_info(activities)")
         columns = [col[1] for col in cursor.fetchall()]
         if 'category_id' not in columns:
+            # SQLite limitation: Cannot add foreign key constraint to existing table via ALTER TABLE
+            # Foreign key relationships are enforced via application-level validation in the API
             cursor.execute("ALTER TABLE activities ADD COLUMN category_id INTEGER DEFAULT NULL")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_activities_category ON activities(category_id)")
 
