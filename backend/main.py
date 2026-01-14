@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import init_db
-from routers import activities, logs, scores
+from routers import activities, logs, scores, categories
 
 app = FastAPI(title="Activity Tracker API")
 
@@ -17,6 +17,7 @@ app.add_middleware(
 app.include_router(activities.router)
 app.include_router(logs.router)
 app.include_router(scores.router)
+app.include_router(categories.router)
 
 
 @app.on_event("startup")

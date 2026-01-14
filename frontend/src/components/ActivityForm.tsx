@@ -1,8 +1,9 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { DayOfWeek, DAYS_OF_WEEK } from '../types';
+import { useCategories } from '../hooks/useApi';
 
 interface Props {
-  onSubmit: (name: string, points: number, daysOfWeek: DayOfWeek[] | null) => Promise<void>;
+  onSubmit: (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -18,10 +19,16 @@ const TEMPLATES = [
 ];
 
 export function ActivityForm({ onSubmit, onCancel }: Props) {
+  const { categories, fetchCategories } = useCategories();
   const [name, setName] = useState('');
   const [points, setPoints] = useState(10);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -29,10 +36,11 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
     setSubmitting(true);
     try {
       const days = selectedDays.length > 0 ? selectedDays : null;
-      await onSubmit(name.trim(), points, days);
+      await onSubmit(name.trim(), points, days, categoryId);
       setName('');
       setPoints(10);
       setSelectedDays([]);
+      setCategoryId(null);
     } finally {
       setSubmitting(false);
     }
@@ -41,7 +49,7 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
   const handleTemplateClick = async (template: { name: string; points: number; days: DayOfWeek[] | null }) => {
     setSubmitting(true);
     try {
-      await onSubmit(template.name, template.points, template.days);
+      await onSubmit(template.name, template.points, template.days, null);
     } finally {
       setSubmitting(false);
     }
@@ -100,6 +108,25 @@ export function ActivityForm({ onSubmit, onCancel }: Props) {
               {POINT_OPTIONS.map((p) => (
                 <option key={p} value={p}>
                   {p} pts
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Category (optional):
+            </label>
+            <select
+              value={categoryId ?? ''}
+              onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              disabled={submitting}
+            >
+              <option value="">No category</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>

@@ -16,6 +16,7 @@ export interface Activity {
   points: number;
   is_active: boolean;
   days_of_week: DayOfWeek[] | null;
+  category_id: number | null;
   created_at: string;
 }
 
@@ -23,6 +24,7 @@ export interface ActivityCreate {
   name: string;
   points: number;
   days_of_week?: DayOfWeek[] | null;
+  category_id?: number | null;
 }
 
 export interface Log {
@@ -55,4 +57,36 @@ export interface HistoryEntry {
   percentage: number;
   completed_count: number;
   total_activities: number;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  color: string;
+  icon: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CategoryCreate {
+  name: string;
+  color?: string;
+  icon?: string | null;
+}
+
+export interface CategoryUpdate {
+  name?: string;
+  color?: string;
+  icon?: string | null;
+}
+
+export interface CategorySummary {
+  category_id: number | null;
+  category_name: string;
+  category_color: string;
+  total_points: number;
+  max_possible_points: number;
+  completed_count: number;
+  total_activities: number;
+  percentage: number;
 }

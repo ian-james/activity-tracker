@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useHistory } from '../hooks/useApi';
+import { useHistory, useCategorySummary } from '../hooks/useApi';
 import { HistoryEntry } from '../types';
 import { CalendarGrid } from './CalendarGrid';
 
@@ -12,12 +12,15 @@ function formatDate(dateStr: string): string {
 
 export function Dashboard() {
   const { history, loading, fetchHistory } = useHistory();
+  const { categorySummaries, loading: categoriesLoading, fetchCategorySummary } = useCategorySummary();
   const [timeRange, setTimeRange] = useState<TimeRange>(7);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showCategories, setShowCategories] = useState(true);
 
   useEffect(() => {
     fetchHistory(timeRange);
-  }, [fetchHistory, timeRange]);
+    fetchCategorySummary(timeRange);
+  }, [fetchHistory, fetchCategorySummary, timeRange]);
 
   const avgPercentage = history.length > 0
     ? Math.round(history.reduce((sum, h) => sum + h.percentage, 0) / history.length)
@@ -67,6 +70,81 @@ export function Dashboard() {
           </div>
           <div className="text-gray-500 dark:text-gray-400 text-sm">Best Day</div>
         </div>
+      </div>
+
+      {/* Category Progress */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <button
+          onClick={() => setShowCategories(!showCategories)}
+          className="flex items-center justify-between w-full text-left mb-4"
+        >
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Category Progress</h3>
+          <svg
+            className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+              showCategories ? 'rotate-180' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {showCategories && (
+          <div>
+            {categoriesLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
+            ) : categorySummaries.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">No category data yet</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {categorySummaries.map((summary) => (
+                  <div
+                    key={summary.category_id ?? 'uncategorized'}
+                    className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <div
+                        className="w-4 h-4 rounded-full"
+                        style={{ backgroundColor: summary.category_color }}
+                      />
+                      <span className="font-medium text-gray-800 dark:text-gray-100">
+                        {summary.category_name}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Completion</span>
+                        <span
+                          className="font-semibold"
+                          style={{ color: summary.category_color }}
+                        >
+                          {summary.percentage}%
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full transition-all"
+                          style={{
+                            width: `${summary.percentage}%`,
+                            backgroundColor: summary.category_color,
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                        <span>{summary.completed_count}/{summary.total_activities} activities</span>
+                        <span>{summary.total_points}/{summary.max_possible_points} pts</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Calendar Grid */}

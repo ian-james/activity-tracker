@@ -1,4 +1,42 @@
-import { Activity, Log, Score, HistoryEntry, DayOfWeek } from '../types';
+import { Activity, Log, Score, HistoryEntry, DayOfWeek, Category, CategorySummary } from '../types';
+
+// Generate mock categories
+export function generateMockCategories(): Category[] {
+  return [
+    {
+      id: 1,
+      name: 'Health & Fitness',
+      color: '#10B981',
+      icon: null,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: 2,
+      name: 'Personal Development',
+      color: '#3B82F6',
+      icon: null,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: 3,
+      name: 'Productivity',
+      color: '#F59E0B',
+      icon: null,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: 4,
+      name: 'Wellness',
+      color: '#8B5CF6',
+      icon: null,
+      is_active: true,
+      created_at: '2024-01-01T00:00:00Z',
+    },
+  ];
+}
 
 // Generate mock activities
 export function generateMockActivities(): Activity[] {
@@ -9,6 +47,7 @@ export function generateMockActivities(): Activity[] {
       points: 25,
       is_active: true,
       days_of_week: ['mon', 'wed', 'fri'],
+      category_id: 1, // Health & Fitness
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -17,6 +56,7 @@ export function generateMockActivities(): Activity[] {
       points: 10,
       is_active: true,
       days_of_week: null,
+      category_id: 2, // Personal Development
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -25,6 +65,7 @@ export function generateMockActivities(): Activity[] {
       points: 10,
       is_active: true,
       days_of_week: null,
+      category_id: 4, // Wellness
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -33,6 +74,7 @@ export function generateMockActivities(): Activity[] {
       points: 25,
       is_active: true,
       days_of_week: ['tue', 'thu', 'sat'],
+      category_id: 1, // Health & Fitness
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -41,6 +83,7 @@ export function generateMockActivities(): Activity[] {
       points: 5,
       is_active: true,
       days_of_week: null,
+      category_id: 4, // Wellness
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -49,6 +92,7 @@ export function generateMockActivities(): Activity[] {
       points: 10,
       is_active: true,
       days_of_week: null,
+      category_id: 2, // Personal Development
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -57,6 +101,7 @@ export function generateMockActivities(): Activity[] {
       points: 50,
       is_active: true,
       days_of_week: ['sun'],
+      category_id: null, // Uncategorized
       created_at: '2024-01-01T00:00:00Z',
     },
   ];
@@ -203,6 +248,111 @@ export function generateMockHistory(days: number): HistoryEntry[] {
   }
 
   return history;
+}
+
+// Generate mock category summaries
+export function generateMockCategorySummaries(days: number): CategorySummary[] {
+  const categories = generateMockCategories();
+  const activities = generateMockActivities();
+
+  const summaries: CategorySummary[] = [];
+
+  // Group activities by category
+  const categoryMap = new Map<number | null, Activity[]>();
+  activities.forEach(activity => {
+    const catId = activity.category_id;
+    if (!categoryMap.has(catId)) {
+      categoryMap.set(catId, []);
+    }
+    categoryMap.get(catId)!.push(activity);
+  });
+
+  // Calculate summaries for each category
+  categories.forEach(category => {
+    const categoryActivities = categoryMap.get(category.id) || [];
+    if (categoryActivities.length === 0) return;
+
+    // Calculate max possible points over the period
+    let maxPossiblePoints = 0;
+    let totalScheduledActivities = 0;
+    const today = new Date();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dayOfWeek = getDayOfWeek(date);
+
+      categoryActivities.forEach(activity => {
+        if (activity.days_of_week === null || activity.days_of_week.includes(dayOfWeek)) {
+          maxPossiblePoints += activity.points;
+          totalScheduledActivities++;
+        }
+      });
+    }
+
+    // Simulate completion with varying rates per category
+    const completionRates = {
+      1: 0.75, // Health & Fitness - good completion
+      2: 0.85, // Personal Development - excellent completion
+      3: 0.65, // Productivity - moderate completion
+      4: 0.80, // Wellness - good completion
+    };
+    const completionRate = completionRates[category.id as keyof typeof completionRates] || 0.7;
+
+    const totalPoints = Math.round(maxPossiblePoints * completionRate);
+    const completedCount = Math.round(totalScheduledActivities * completionRate);
+    const percentage = maxPossiblePoints > 0 ? Math.round((totalPoints / maxPossiblePoints) * 100) : 0;
+
+    summaries.push({
+      category_id: category.id,
+      category_name: category.name,
+      category_color: category.color,
+      total_points: totalPoints,
+      max_possible_points: maxPossiblePoints,
+      completed_count: completedCount,
+      total_activities: totalScheduledActivities,
+      percentage,
+    });
+  });
+
+  // Add uncategorized if there are any
+  const uncategorizedActivities = categoryMap.get(null) || [];
+  if (uncategorizedActivities.length > 0) {
+    let maxPossiblePoints = 0;
+    let totalScheduledActivities = 0;
+    const today = new Date();
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dayOfWeek = getDayOfWeek(date);
+
+      uncategorizedActivities.forEach(activity => {
+        if (activity.days_of_week === null || activity.days_of_week.includes(dayOfWeek)) {
+          maxPossiblePoints += activity.points;
+          totalScheduledActivities++;
+        }
+      });
+    }
+
+    const completionRate = 0.6; // Lower completion for uncategorized
+    const totalPoints = Math.round(maxPossiblePoints * completionRate);
+    const completedCount = Math.round(totalScheduledActivities * completionRate);
+    const percentage = maxPossiblePoints > 0 ? Math.round((totalPoints / maxPossiblePoints) * 100) : 0;
+
+    summaries.push({
+      category_id: null,
+      category_name: 'Uncategorized',
+      category_color: '#6B7280',
+      total_points: totalPoints,
+      max_possible_points: maxPossiblePoints,
+      completed_count: completedCount,
+      total_activities: totalScheduledActivities,
+      percentage,
+    });
+  }
+
+  return summaries;
 }
 
 // Helper function to get day of week

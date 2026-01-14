@@ -37,10 +37,17 @@ def list_activities():
 def create_activity(activity: ActivityCreate):
     with get_db() as conn:
         cursor = conn.cursor()
+
+        # Validate category exists if provided
+        if activity.category_id is not None:
+            cursor.execute("SELECT id FROM categories WHERE id = ? AND is_active = 1", (activity.category_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail="Category not found")
+
         days_str = days_to_string(activity.days_of_week)
         cursor.execute(
-            "INSERT INTO activities (name, points, days_of_week) VALUES (?, ?, ?)",
-            (activity.name, activity.points, days_str)
+            "INSERT INTO activities (name, points, days_of_week, category_id) VALUES (?, ?, ?, ?)",
+            (activity.name, activity.points, days_str, activity.category_id)
         )
         activity_id = cursor.lastrowid
         cursor.execute("SELECT * FROM activities WHERE id = ?", (activity_id,))
@@ -67,6 +74,13 @@ def update_activity(activity_id: int, activity: ActivityUpdate):
         if activity.days_of_week is not None:
             updates.append("days_of_week = ?")
             values.append(days_to_string(activity.days_of_week))
+        if activity.category_id is not None:
+            # Validate category exists if provided
+            cursor.execute("SELECT id FROM categories WHERE id = ? AND is_active = 1", (activity.category_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=400, detail="Category not found")
+            updates.append("category_id = ?")
+            values.append(activity.category_id)
 
         if updates:
             values.append(activity_id)

@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react';
-import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry } from '../types';
+import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary } from '../types';
 import { useMockData as useMockDataContext } from '../contexts/MockDataContext';
 import {
   generateMockActivities,
   generateMockLogsForDate,
   generateMockScore,
   generateMockHistory,
+  generateMockCategories,
+  generateMockCategorySummaries,
 } from '../utils/mockData';
 
 const API_BASE = '/api';
@@ -176,4 +178,83 @@ export function useHistory() {
   }, [useMockData]);
 
   return { history, loading, fetchHistory };
+}
+
+export function useCategories() {
+  const { useMockData } = useMockDataContext();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCategories = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setCategories(generateMockCategories());
+      } else {
+        const data = await fetchApi<Category[]>('/categories');
+        setCategories(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [useMockData]);
+
+  const createCategory = useCallback(async (category: CategoryCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Create category ignored', category);
+      return;
+    }
+    await fetchApi<Category>('/categories', {
+      method: 'POST',
+      body: JSON.stringify(category),
+    });
+    await fetchCategories();
+  }, [fetchCategories, useMockData]);
+
+  const updateCategory = useCallback(async (id: number, category: CategoryUpdate) => {
+    if (useMockData) {
+      console.log('Mock mode: Update category ignored', id, category);
+      return;
+    }
+    await fetchApi<Category>(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(category),
+    });
+    await fetchCategories();
+  }, [fetchCategories, useMockData]);
+
+  const deleteCategory = useCallback(async (id: number) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete category ignored', id);
+      return;
+    }
+    await fetchApi(`/categories/${id}`, { method: 'DELETE' });
+    await fetchCategories();
+  }, [fetchCategories, useMockData]);
+
+  return { categories, loading, fetchCategories, createCategory, updateCategory, deleteCategory };
+}
+
+export function useCategorySummary() {
+  const { useMockData } = useMockDataContext();
+  const [categorySummaries, setCategorySummaries] = useState<CategorySummary[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchCategorySummary = useCallback(async (days: number = 7) => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setCategorySummaries(generateMockCategorySummaries(days));
+      } else {
+        const data = await fetchApi<CategorySummary[]>(`/scores/category-summary?days=${days}`);
+        setCategorySummaries(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [useMockData]);
+
+  return { categorySummaries, loading, fetchCategorySummary };
 }

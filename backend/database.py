@@ -42,6 +42,39 @@ def init_db():
         if 'days_of_week' not in columns:
             cursor.execute("ALTER TABLE activities ADD COLUMN days_of_week TEXT DEFAULT NULL")
 
+        # Create categories table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                color TEXT NOT NULL DEFAULT '#3B82F6',
+                icon TEXT DEFAULT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Migration: add category_id column to activities if it doesn't exist
+        cursor.execute("PRAGMA table_info(activities)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'category_id' not in columns:
+            cursor.execute("ALTER TABLE activities ADD COLUMN category_id INTEGER DEFAULT NULL")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_activities_category ON activities(category_id)")
+
+        # Seed default categories for new installations
+        cursor.execute("SELECT COUNT(*) as count FROM categories")
+        if cursor.fetchone()['count'] == 0:
+            default_categories = [
+                ('Health & Fitness', '#10B981'),
+                ('Personal Development', '#3B82F6'),
+                ('Productivity', '#F59E0B'),
+                ('Wellness', '#8B5CF6'),
+            ]
+            cursor.executemany(
+                "INSERT INTO categories (name, color) VALUES (?, ?)",
+                default_categories
+            )
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS activity_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

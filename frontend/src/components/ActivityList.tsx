@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Activity, DAYS_OF_WEEK } from '../types';
+import { useCategories } from '../hooks/useApi';
 
 interface Props {
   activities: Activity[];
@@ -6,6 +8,11 @@ interface Props {
 }
 
 export function ActivityList({ activities, onDelete }: Props) {
+  const { categories, fetchCategories } = useCategories();
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
   if (activities.length === 0) {
     return (
       <div className="text-gray-500 dark:text-gray-400 text-center py-8">
@@ -22,6 +29,11 @@ export function ActivityList({ activities, onDelete }: Props) {
     }).join(', ');
   };
 
+  const getCategoryName = (categoryId: number | null) => {
+    if (!categoryId) return null;
+    return categories.find(c => c.id === categoryId);
+  };
+
   return (
     <div className="space-y-2">
       {activities.map((activity) => (
@@ -30,8 +42,18 @@ export function ActivityList({ activities, onDelete }: Props) {
           className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg shadow"
         >
           <div>
-            <span className="font-medium text-gray-800 dark:text-gray-200">{activity.name}</span>
-            <span className="text-gray-500 dark:text-gray-400 ml-2">+{activity.points} pts</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-gray-800 dark:text-gray-200">{activity.name}</span>
+              {activity.category_id && getCategoryName(activity.category_id) && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded text-white"
+                  style={{ backgroundColor: getCategoryName(activity.category_id)?.color }}
+                >
+                  {getCategoryName(activity.category_id)?.name}
+                </span>
+              )}
+              <span className="text-gray-500 dark:text-gray-400">+{activity.points} pts</span>
+            </div>
             <div className="text-xs text-gray-400 dark:text-gray-500">
               {formatDays(activity.days_of_week)}
             </div>

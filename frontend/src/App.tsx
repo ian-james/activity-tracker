@@ -6,6 +6,7 @@ import { DailyTracker } from './components/DailyTracker';
 import { ScoreDisplay } from './components/ScoreDisplay';
 import { Dashboard } from './components/Dashboard';
 import { Settings } from './components/Settings';
+import { CategoryManager } from './components/CategoryManager';
 import { DayOfWeek } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
@@ -56,8 +57,8 @@ function App() {
     fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
   };
 
-  const handleAddActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null) => {
-    await createActivity({ name, points, days_of_week: daysOfWeek });
+  const handleAddActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => {
+    await createActivity({ name, points, days_of_week: daysOfWeek, category_id: categoryId });
     setShowAddForm(false);
   };
 
@@ -103,22 +104,28 @@ function App() {
         </header>
 
         {view === 'manage' && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Activities</h2>
-              {!showAddForm && (
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Add Activity
-                </button>
+          <div className="space-y-8">
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Activities</h2>
+                {!showAddForm && (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    Add Activity
+                  </button>
+                )}
+              </div>
+              {showAddForm && (
+                <ActivityForm onSubmit={handleAddActivity} onCancel={() => setShowAddForm(false)} />
               )}
+              <ActivityList activities={activities} onDelete={handleDeleteActivity} />
             </div>
-            {showAddForm && (
-              <ActivityForm onSubmit={handleAddActivity} onCancel={() => setShowAddForm(false)} />
-            )}
-            <ActivityList activities={activities} onDelete={handleDeleteActivity} />
+
+            <div className="border-t border-gray-300 dark:border-gray-700 pt-8">
+              <CategoryManager />
+            </div>
           </div>
         )}
 
