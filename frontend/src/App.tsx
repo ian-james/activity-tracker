@@ -7,7 +7,7 @@ import { ScoreDisplay } from './components/ScoreDisplay';
 import { Dashboard } from './components/Dashboard';
 import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
-import { DayOfWeek } from './types';
+import { DayOfWeek, Activity } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
 
@@ -28,10 +28,11 @@ function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('tracker');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [showActivities, setShowActivities] = useState(true);
 
   const dateStr = formatDate(currentDate);
-  const { activities, fetchActivities, createActivity, deleteActivity } = useActivities();
+  const { activities, fetchActivities, createActivity, updateActivity, deleteActivity } = useActivities();
   const { logs, fetchLogs, createLog, deleteLog } = useLogs(dateStr);
   const { dailyScore, weeklyScore, monthlyScore, fetchDailyScore, fetchWeeklyScore, fetchMonthlyScore } = useScores();
 
@@ -57,8 +58,22 @@ function App() {
     fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
   };
 
-  const handleAddActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => {
-    await createActivity({ name, points, days_of_week: daysOfWeek, category_id: categoryId });
+  const handleSubmitActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => {
+    if (editingActivity) {
+      await updateActivity(editingActivity.id, { name, points, days_of_week: daysOfWeek, category_id: categoryId });
+      setEditingActivity(null);
+    } else {
+      await createActivity({ name, points, days_of_week: daysOfWeek, category_id: categoryId });
+      setShowAddForm(false);
+    }
+    fetchLogs();
+    fetchDailyScore(dateStr);
+    fetchWeeklyScore(dateStr);
+    fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
+  };
+
+  const handleEditActivity = (activity: Activity) => {
+    setEditingActivity(activity);
     setShowAddForm(false);
   };
 
@@ -68,6 +83,11 @@ function App() {
     fetchDailyScore(dateStr);
     fetchWeeklyScore(dateStr);
     fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
+  };
+
+  const handleCancelForm = () => {
+    setShowAddForm(false);
+    setEditingActivity(null);
   };
 
   const changeDate = (days: number) => {
@@ -108,7 +128,7 @@ function App() {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Activities</h2>
-                {!showAddForm && (
+                {!showAddForm && !editingActivity && (
                   <button
                     onClick={() => setShowAddForm(true)}
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -118,9 +138,16 @@ function App() {
                 )}
               </div>
               {showAddForm && (
-                <ActivityForm onSubmit={handleAddActivity} onCancel={() => setShowAddForm(false)} />
+                <ActivityForm onSubmit={handleSubmitActivity} onCancel={handleCancelForm} />
               )}
-              <ActivityList activities={activities} onDelete={handleDeleteActivity} />
+              {editingActivity && (
+                <ActivityForm
+                  onSubmit={handleSubmitActivity}
+                  onCancel={handleCancelForm}
+                  initialActivity={editingActivity}
+                />
+              )}
+              <ActivityList activities={activities} onEdit={handleEditActivity} onDelete={handleDeleteActivity} />
             </div>
 
             <div className="border-t border-gray-300 dark:border-gray-700 pt-8">

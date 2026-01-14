@@ -105,6 +105,27 @@ export function useActivities() {
     }
   }, [fetchActivities, useMockData]);
 
+  const updateActivity = useCallback(async (id: number, activity: Partial<ActivityCreate>) => {
+    if (useMockData) {
+      // Don't actually update when using mock data
+      console.log('Mock mode: Update activity ignored', id, activity);
+      return;
+    }
+
+    setError(null);
+    try {
+      await fetchApi<Activity>(`/activities/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(activity),
+      });
+      await fetchActivities();
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to update activity');
+      setError(error);
+      throw error;
+    }
+  }, [fetchActivities, useMockData]);
+
   const deleteActivity = useCallback(async (id: number) => {
     if (useMockData) {
       // Don't actually delete when using mock data
@@ -123,7 +144,7 @@ export function useActivities() {
     }
   }, [fetchActivities, useMockData]);
 
-  return { activities, loading, error, fetchActivities, createActivity, deleteActivity };
+  return { activities, loading, error, fetchActivities, createActivity, updateActivity, deleteActivity };
 }
 
 export function useLogs(date: string) {

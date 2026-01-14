@@ -4,12 +4,15 @@ import App from './App'
 import './index.css'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { MockDataProvider } from './contexts/MockDataContext'
+import { TemplatesProvider } from './contexts/TemplatesContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
       <MockDataProvider>
-        <App />
+        <TemplatesProvider>
+          <App />
+        </TemplatesProvider>
       </MockDataProvider>
     </ThemeProvider>
   </React.StrictMode>,

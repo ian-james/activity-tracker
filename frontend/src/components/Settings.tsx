@@ -1,5 +1,6 @@
 import { useTheme } from '../contexts/ThemeContext';
 import { useMockData } from '../contexts/MockDataContext';
+import { TemplateManager } from './TemplateManager';
 
 export function Settings() {
   const { theme, toggleTheme } = useTheme();
@@ -83,6 +84,9 @@ export function Settings() {
           )}
         </div>
       </div>
+
+      {/* Template Manager */}
+      <TemplateManager />
     </div>
   );
 }

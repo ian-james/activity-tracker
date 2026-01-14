@@ -4,10 +4,11 @@ import { useCategories } from '../hooks/useApi';
 
 interface Props {
   activities: Activity[];
+  onEdit: (activity: Activity) => void;
   onDelete: (id: number) => Promise<void>;
 }
 
-export function ActivityList({ activities, onDelete }: Props) {
+export function ActivityList({ activities, onEdit, onDelete }: Props) {
   const { categories, fetchCategories } = useCategories();
 
   useEffect(() => {
@@ -58,12 +59,20 @@ export function ActivityList({ activities, onDelete }: Props) {
               {formatDays(activity.days_of_week)}
             </div>
           </div>
-          <button
-            onClick={() => onDelete(activity.id)}
-            className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2"
-          >
-            Delete
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEdit(activity)}
+              className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => onDelete(activity.id)}
+              className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       ))}
     </div>
