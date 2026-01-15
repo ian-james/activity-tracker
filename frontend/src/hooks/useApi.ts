@@ -28,6 +28,7 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${url}`, {
       ...options,
+      credentials: 'include', // Include cookies for authentication
       headers: {
         'Content-Type': 'application/json',
         ...options?.headers,
@@ -35,6 +36,13 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     });
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (res.status === 401) {
+        // Redirect to root - App.tsx will show LoginScreen
+        window.location.href = '/';
+        throw new ApiException(401, 'Not authenticated');
+      }
+
       // Try to parse error detail from response
       let errorDetail = `API error: ${res.status}`;
       try {

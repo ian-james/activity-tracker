@@ -204,3 +204,58 @@ class CategorySummary(BaseModel):
     completed_count: int
     total_activities: int
     percentage: float
+
+
+class User(BaseModel):
+    id: int
+    google_id: Optional[str] = None
+    email: str
+    name: Optional[str] = None
+    profile_picture: Optional[str] = None
+    created_at: datetime
+    last_login_at: datetime
+
+
+class UserSignup(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not v:
+            raise ValueError('Email cannot be empty')
+        if '@' not in v or '.' not in v:
+            raise ValueError('Invalid email format')
+        if len(v) > 255:
+            raise ValueError('Email cannot exceed 255 characters')
+        return v
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        if len(v) > 100:
+            raise ValueError('Password cannot exceed 100 characters')
+        return v
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        return v.strip().lower()
+
+
+class Session(BaseModel):
+    id: int
+    session_id: str
+    user_id: int
+    created_at: datetime
+    expires_at: datetime

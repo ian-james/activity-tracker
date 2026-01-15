@@ -7,6 +7,8 @@ import { ScoreDisplay } from './components/ScoreDisplay';
 import { Dashboard } from './components/Dashboard';
 import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
+import { LoginScreen } from './components/LoginScreen';
+import { useAuth } from './contexts/AuthContext';
 import { DayOfWeek, Activity } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
@@ -24,7 +26,8 @@ function formatDisplayDate(date: Date): string {
   });
 }
 
-function App() {
+function AuthenticatedApp() {
+  const { user, logout } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<View>('tracker');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -100,7 +103,27 @@ function App() {
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto p-4">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Activity Tracker</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Activity Tracker</h1>
+            <div className="flex items-center gap-3">
+              {user.profile_picture && (
+                <img
+                  src={user.profile_picture}
+                  alt={user.name || user.email}
+                  className="w-8 h-8 rounded-full"
+                />
+              )}
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {user.name || user.email}
+              </span>
+              <button
+                onClick={logout}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
           <nav className="flex gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow">
             {[
               { id: 'tracker', label: 'Today' },
@@ -219,6 +242,27 @@ function App() {
       </div>
     </div>
   );
+}
+
+function App() {
+  const { user, loading } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // Show authenticated app
+  return <AuthenticatedApp />;
 }
 
 export default App;

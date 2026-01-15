@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 from datetime import date, timedelta
 
 from database import get_db
-from models import ScoreResponse, CategorySummary
+from models import ScoreResponse, CategorySummary, User
+from auth.middleware import get_current_user
 
 router = APIRouter(prefix="/api/scores", tags=["scores"])
 
@@ -19,11 +20,15 @@ def is_scheduled_for_day(days_of_week: str | None, check_date: date) -> bool:
     return day_name in scheduled_days
 
 
-def calculate_score(start_date: date, end_date: date, period: str) -> ScoreResponse:
+def calculate_score(start_date: date, end_date: date, period: str, user_id: int) -> ScoreResponse:
+    """Calculate score for a user for a specific date range."""
     with get_db() as conn:
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM activities WHERE is_active = 1")
+        cursor.execute(
+            "SELECT * FROM activities WHERE is_active = 1 AND user_id = ?",
+            (user_id,)
+        )
         activities = cursor.fetchall()
 
         if len(activities) == 0:
@@ -49,13 +54,13 @@ def calculate_score(start_date: date, end_date: date, period: str) -> ScoreRespo
                     total_scheduled_activities += 1
             current += timedelta(days=1)
 
-        # Get completed activities
+        # Get completed activities for user
         cursor.execute("""
             SELECT al.activity_id, al.completed_at, a.points
             FROM activity_logs al
             JOIN activities a ON al.activity_id = a.id
-            WHERE al.completed_at >= ? AND al.completed_at <= ?
-        """, (start_date.isoformat(), end_date.isoformat()))
+            WHERE al.completed_at >= ? AND al.completed_at <= ? AND al.user_id = ?
+        """, (start_date.isoformat(), end_date.isoformat(), user_id))
         logs = cursor.fetchall()
 
         total_points = sum(log["points"] for log in logs)
@@ -75,36 +80,36 @@ def calculate_score(start_date: date, end_date: date, period: str) -> ScoreRespo
 
 
 @router.get("/daily", response_model=ScoreResponse)
-def get_daily_score(date: date = Query(default_factory=date.today)):
-    return calculate_score(date, date, "daily")
+def get_daily_score(date: date = Query(default_factory=date.today), current_user: User = Depends(get_current_user)):
+    return calculate_score(date, date, "daily", current_user.id)
 
 
 @router.get("/weekly", response_model=ScoreResponse)
-def get_weekly_score(date: date = Query(default_factory=date.today)):
+def get_weekly_score(date: date = Query(default_factory=date.today), current_user: User = Depends(get_current_user)):
     start_of_week = date - timedelta(days=date.weekday())
     end_of_week = start_of_week + timedelta(days=6)
-    return calculate_score(start_of_week, end_of_week, "weekly")
+    return calculate_score(start_of_week, end_of_week, "weekly", current_user.id)
 
 
 @router.get("/monthly", response_model=ScoreResponse)
-def get_monthly_score(year: int = Query(...), month: int = Query(...)):
+def get_monthly_score(year: int = Query(...), month: int = Query(...), current_user: User = Depends(get_current_user)):
     start_date = date(year, month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1) - timedelta(days=1)
     else:
         end_date = date(year, month + 1, 1) - timedelta(days=1)
-    return calculate_score(start_date, end_date, "monthly")
+    return calculate_score(start_date, end_date, "monthly", current_user.id)
 
 
 @router.get("/history")
-def get_score_history(days: int = Query(default=7, ge=1, le=90)):
+def get_score_history(days: int = Query(default=7, ge=1, le=90), current_user: User = Depends(get_current_user)):
     """Get daily scores for the past N days."""
     today = date.today()
     history = []
 
     for i in range(days - 1, -1, -1):
         day = today - timedelta(days=i)
-        score = calculate_score(day, day, "daily")
+        score = calculate_score(day, day, "daily", current_user.id)
         history.append({
             "date": day.isoformat(),
             "total_points": score.total_points,
@@ -137,7 +142,7 @@ def calculate_max_points_and_activities(activities: list, start_date: date, end_
 
 
 @router.get("/category-summary", response_model=list[CategorySummary])
-def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
+def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user: User = Depends(get_current_user)):
     """Get score summaries grouped by category for the past N days.
 
     Uses a single query to fetch all data, then processes in memory to avoid N+1 query problem.
@@ -161,12 +166,12 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
                 a.days_of_week,
                 al.completed_at
             FROM categories c
-            LEFT JOIN activities a ON a.category_id = c.id AND a.is_active = 1
+            LEFT JOIN activities a ON a.category_id = c.id AND a.is_active = 1 AND a.user_id = ?
             LEFT JOIN activity_logs al ON al.activity_id = a.id
-                AND al.completed_at >= ? AND al.completed_at <= ?
-            WHERE c.is_active = 1
+                AND al.completed_at >= ? AND al.completed_at <= ? AND al.user_id = ?
+            WHERE c.is_active = 1 AND c.user_id = ?
             ORDER BY c.name, a.id
-        """, (start_date.isoformat(), end_date.isoformat()))
+        """, (current_user.id, start_date.isoformat(), end_date.isoformat(), current_user.id, current_user.id))
 
         category_rows = cursor.fetchall()
 
@@ -179,10 +184,10 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90)):
                 al.completed_at
             FROM activities a
             LEFT JOIN activity_logs al ON al.activity_id = a.id
-                AND al.completed_at >= ? AND al.completed_at <= ?
-            WHERE a.is_active = 1 AND a.category_id IS NULL
+                AND al.completed_at >= ? AND al.completed_at <= ? AND al.user_id = ?
+            WHERE a.is_active = 1 AND a.category_id IS NULL AND a.user_id = ?
             ORDER BY a.id
-        """, (start_date.isoformat(), end_date.isoformat()))
+        """, (start_date.isoformat(), end_date.isoformat(), current_user.id, current_user.id))
 
         uncategorized_rows = cursor.fetchall()
 

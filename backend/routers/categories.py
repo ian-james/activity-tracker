@@ -1,36 +1,43 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
 from database import get_db
-from models import Category, CategoryCreate, CategoryUpdate
+from models import Category, CategoryCreate, CategoryUpdate, User
+from auth.middleware import get_current_user
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 
 @router.get("", response_model=List[Category])
-def list_categories():
-    """Get all active categories."""
+def list_categories(current_user: User = Depends(get_current_user)):
+    """Get all active categories for the current user."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM categories WHERE is_active = 1 ORDER BY name")
+        cursor.execute(
+            "SELECT * FROM categories WHERE is_active = 1 AND user_id = ? ORDER BY name",
+            (current_user.id,)
+        )
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
 
 @router.post("", response_model=Category)
-def create_category(category: CategoryCreate):
-    """Create a new category."""
+def create_category(category: CategoryCreate, current_user: User = Depends(get_current_user)):
+    """Create a new category for the current user."""
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # Check for duplicate name
-        cursor.execute("SELECT id FROM categories WHERE name = ? AND is_active = 1", (category.name,))
+        # Check for duplicate name within user's categories
+        cursor.execute(
+            "SELECT id FROM categories WHERE name = ? AND is_active = 1 AND user_id = ?",
+            (category.name, current_user.id)
+        )
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="Category with this name already exists")
 
         cursor.execute(
-            "INSERT INTO categories (name, color, icon) VALUES (?, ?, ?)",
-            (category.name, category.color, category.icon)
+            "INSERT INTO categories (name, color, icon, user_id) VALUES (?, ?, ?, ?)",
+            (category.name, category.color, category.icon, current_user.id)
         )
         category_id = cursor.lastrowid
         cursor.execute("SELECT * FROM categories WHERE id = ?", (category_id,))
@@ -38,11 +45,14 @@ def create_category(category: CategoryCreate):
 
 
 @router.put("/{category_id}", response_model=Category)
-def update_category(category_id: int, category: CategoryUpdate):
-    """Update an existing category."""
+def update_category(category_id: int, category: CategoryUpdate, current_user: User = Depends(get_current_user)):
+    """Update an existing category for the current user."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM categories WHERE id = ? AND is_active = 1", (category_id,))
+        cursor.execute(
+            "SELECT * FROM categories WHERE id = ? AND is_active = 1 AND user_id = ?",
+            (category_id, current_user.id)
+        )
         existing = cursor.fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Category not found")
@@ -50,10 +60,10 @@ def update_category(category_id: int, category: CategoryUpdate):
         updates = []
         values = []
         if category.name is not None:
-            # Check for duplicate name
+            # Check for duplicate name within user's categories
             cursor.execute(
-                "SELECT id FROM categories WHERE name = ? AND is_active = 1 AND id != ?",
-                (category.name, category_id)
+                "SELECT id FROM categories WHERE name = ? AND is_active = 1 AND user_id = ? AND id != ?",
+                (category.name, current_user.id, category_id)
             )
             if cursor.fetchone():
                 raise HTTPException(status_code=400, detail="Category with this name already exists")
@@ -78,16 +88,22 @@ def update_category(category_id: int, category: CategoryUpdate):
 
 
 @router.delete("/{category_id}")
-def delete_category(category_id: int):
-    """Soft delete a category. Activities with this category will become uncategorized."""
+def delete_category(category_id: int, current_user: User = Depends(get_current_user)):
+    """Soft delete a category. User's activities with this category will become uncategorized."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM categories WHERE id = ? AND is_active = 1", (category_id,))
+        cursor.execute(
+            "SELECT * FROM categories WHERE id = ? AND is_active = 1 AND user_id = ?",
+            (category_id, current_user.id)
+        )
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Category not found")
 
-        # Set category_id to NULL for all activities using this category
-        cursor.execute("UPDATE activities SET category_id = NULL WHERE category_id = ?", (category_id,))
+        # Set category_id to NULL for user's activities using this category
+        cursor.execute(
+            "UPDATE activities SET category_id = NULL WHERE category_id = ? AND user_id = ?",
+            (category_id, current_user.id)
+        )
 
         # Soft delete the category
         cursor.execute("UPDATE categories SET is_active = 0 WHERE id = ?", (category_id,))

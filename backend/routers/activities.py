@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 
 from database import get_db
-from models import Activity, ActivityCreate, ActivityUpdate
+from models import Activity, ActivityCreate, ActivityUpdate, User
+from auth.middleware import get_current_user
 
 router = APIRouter(prefix="/api/activities", tags=["activities"])
 
@@ -25,29 +26,35 @@ def days_to_string(days: List[str] | None) -> str | None:
 
 
 @router.get("", response_model=List[Activity])
-def list_activities():
+def list_activities(current_user: User = Depends(get_current_user)):
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM activities WHERE is_active = 1 ORDER BY name")
+        cursor.execute(
+            "SELECT * FROM activities WHERE is_active = 1 AND user_id = ? ORDER BY name",
+            (current_user.id,)
+        )
         rows = cursor.fetchall()
         return [row_to_activity(row) for row in rows]
 
 
 @router.post("", response_model=Activity)
-def create_activity(activity: ActivityCreate):
+def create_activity(activity: ActivityCreate, current_user: User = Depends(get_current_user)):
     with get_db() as conn:
         cursor = conn.cursor()
 
-        # Validate category exists if provided
+        # Validate category exists and belongs to user if provided
         if activity.category_id is not None:
-            cursor.execute("SELECT id FROM categories WHERE id = ? AND is_active = 1", (activity.category_id,))
+            cursor.execute(
+                "SELECT id FROM categories WHERE id = ? AND is_active = 1 AND user_id = ?",
+                (activity.category_id, current_user.id)
+            )
             if not cursor.fetchone():
                 raise HTTPException(status_code=400, detail="Category not found")
 
         days_str = days_to_string(activity.days_of_week)
         cursor.execute(
-            "INSERT INTO activities (name, points, days_of_week, category_id) VALUES (?, ?, ?, ?)",
-            (activity.name, activity.points, days_str, activity.category_id)
+            "INSERT INTO activities (name, points, days_of_week, category_id, user_id) VALUES (?, ?, ?, ?, ?)",
+            (activity.name, activity.points, days_str, activity.category_id, current_user.id)
         )
         activity_id = cursor.lastrowid
         cursor.execute("SELECT * FROM activities WHERE id = ?", (activity_id,))
@@ -55,10 +62,13 @@ def create_activity(activity: ActivityCreate):
 
 
 @router.put("/{activity_id}", response_model=Activity)
-def update_activity(activity_id: int, activity: ActivityUpdate):
+def update_activity(activity_id: int, activity: ActivityUpdate, current_user: User = Depends(get_current_user)):
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM activities WHERE id = ? AND is_active = 1", (activity_id,))
+        cursor.execute(
+            "SELECT * FROM activities WHERE id = ? AND is_active = 1 AND user_id = ?",
+            (activity_id, current_user.id)
+        )
         existing = cursor.fetchone()
         if not existing:
             raise HTTPException(status_code=404, detail="Activity not found")
@@ -75,8 +85,11 @@ def update_activity(activity_id: int, activity: ActivityUpdate):
             updates.append("days_of_week = ?")
             values.append(days_to_string(activity.days_of_week))
         if activity.category_id is not None:
-            # Validate category exists if provided
-            cursor.execute("SELECT id FROM categories WHERE id = ? AND is_active = 1", (activity.category_id,))
+            # Validate category exists and belongs to user if provided
+            cursor.execute(
+                "SELECT id FROM categories WHERE id = ? AND is_active = 1 AND user_id = ?",
+                (activity.category_id, current_user.id)
+            )
             if not cursor.fetchone():
                 raise HTTPException(status_code=400, detail="Category not found")
             updates.append("category_id = ?")
@@ -94,10 +107,13 @@ def update_activity(activity_id: int, activity: ActivityUpdate):
 
 
 @router.delete("/{activity_id}")
-def delete_activity(activity_id: int):
+def delete_activity(activity_id: int, current_user: User = Depends(get_current_user)):
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM activities WHERE id = ? AND is_active = 1", (activity_id,))
+        cursor.execute(
+            "SELECT * FROM activities WHERE id = ? AND is_active = 1 AND user_id = ?",
+            (activity_id, current_user.id)
+        )
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Activity not found")
 
