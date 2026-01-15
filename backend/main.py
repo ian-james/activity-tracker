@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import init_db
-from routers import activities, logs, scores, categories, auth
+from routers import activities, logs, scores, categories, auth, export, analytics
 
 app = FastAPI(title="Activity Tracker API")
 
@@ -23,6 +23,8 @@ app.include_router(activities.router)
 app.include_router(logs.router)
 app.include_router(scores.router)
 app.include_router(categories.router)
+app.include_router(export.router, prefix="/api", tags=["export"])
+app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 
 
 @app.on_event("startup")
