@@ -24,6 +24,8 @@ export function CategoryManager() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({ name: '', color: '#3B82F6' });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [error, setError] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -33,32 +35,53 @@ export function CategoryManager() {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    if (editingCategory) {
-      await updateCategory(editingCategory.id, formData);
-    } else {
-      await createCategory(formData);
-    }
+    setError('');
+    setSubmitting(true);
 
-    setFormData({ name: '', color: '#3B82F6' });
-    setShowForm(false);
-    setEditingCategory(null);
+    try {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, formData);
+      } else {
+        await createCategory(formData);
+      }
+
+      // Only reset form if successful
+      setFormData({ name: '', color: '#3B82F6' });
+      setShowForm(false);
+      setEditingCategory(null);
+    } catch (err) {
+      // Display error to user
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save category';
+      setError(errorMessage);
+      console.error('Category operation failed:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     setFormData({ name: category.name, color: category.color });
     setShowForm(true);
+    setError('');
   };
 
   const handleDelete = async (id: number) => {
-    await deleteCategory(id);
-    setDeleteConfirm(null);
+    try {
+      await deleteCategory(id);
+      setDeleteConfirm(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete category';
+      setError(errorMessage);
+      console.error('Delete failed:', err);
+    }
   };
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingCategory(null);
     setFormData({ name: '', color: '#3B82F6' });
+    setError('');
   };
 
   return (
@@ -75,6 +98,13 @@ export function CategoryManager() {
         )}
       </div>
 
+      {/* Error message display */}
+      {error && !showForm && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
           <div>
@@ -88,6 +118,7 @@ export function CategoryManager() {
               className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
               placeholder="e.g. Health & Fitness"
               required
+              disabled={submitting}
             />
           </div>
 
@@ -108,22 +139,32 @@ export function CategoryManager() {
                   } transition-transform`}
                   style={{ backgroundColor: color }}
                   title={color}
+                  disabled={submitting}
                 />
               ))}
             </div>
           </div>
 
+          {/* Error message in form */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
               type="submit"
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              disabled={submitting}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {editingCategory ? 'Update' : 'Create'}
+              {submitting ? 'Saving...' : editingCategory ? 'Update' : 'Create'}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-700"
+              disabled={submitting}
+              className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
