@@ -6,6 +6,7 @@ export interface ActivityTemplate {
   name: string;
   points: number;
   days: DayOfWeek[] | null;
+  category_id: number | null;
 }
 
 interface TemplatesContextType {
@@ -18,12 +19,12 @@ interface TemplatesContextType {
 const TemplatesContext = createContext<TemplatesContextType | undefined>(undefined);
 
 const DEFAULT_TEMPLATES: ActivityTemplate[] = [
-  { id: '1', name: 'Workout', points: 25, days: null },
-  { id: '2', name: 'Cycling', points: 25, days: ['mon', 'wed', 'fri'] },
-  { id: '3', name: 'Yoga', points: 25, days: ['tue', 'thu'] },
-  { id: '4', name: 'Take Vitamins', points: 5, days: null },
-  { id: '5', name: 'Meal Prep', points: 10, days: ['sun'] },
-  { id: '6', name: 'Read 30 mins', points: 10, days: null },
+  { id: '1', name: 'Workout', points: 25, days: null, category_id: null },
+  { id: '2', name: 'Cycling', points: 25, days: ['mon', 'wed', 'fri'], category_id: null },
+  { id: '3', name: 'Yoga', points: 25, days: ['tue', 'thu'], category_id: null },
+  { id: '4', name: 'Take Vitamins', points: 5, days: null, category_id: null },
+  { id: '5', name: 'Meal Prep', points: 10, days: ['sun'], category_id: null },
+  { id: '6', name: 'Read 30 mins', points: 10, days: null, category_id: null },
 ];
 
 export function TemplatesProvider({ children }: { children: ReactNode }) {

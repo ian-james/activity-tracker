@@ -41,10 +41,10 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
     }
   };
 
-  const handleTemplateClick = async (template: { name: string; points: number; days: DayOfWeek[] | null }) => {
+  const handleTemplateClick = async (template: { name: string; points: number; days: DayOfWeek[] | null; category_id: number | null }) => {
     setSubmitting(true);
     try {
-      await onSubmit(template.name, template.points, template.days, null);
+      await onSubmit(template.name, template.points, template.days, template.category_id);
     } finally {
       setSubmitting(false);
     }
@@ -65,23 +65,46 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
       {!isEditMode && templates.length > 0 && (
         <div className="mb-4">
           <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Quick add:</p>
-          <div className="flex flex-wrap gap-2">
-            {templates.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => handleTemplateClick(template)}
-                disabled={submitting}
-                className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 text-gray-800 dark:text-gray-200"
-              >
-                {template.name} (+{template.points})
-                {template.days && (
-                  <span className="text-gray-500 dark:text-gray-400 ml-1">
-                    [{template.days.map(d => d.charAt(0).toUpperCase()).join('')}]
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className="space-y-2">
+            {(() => {
+              const grouped = new Map<string, { name: string; color: string; templates: typeof templates }>();
+              templates.forEach(template => {
+                const category = categories.find(c => c.id === template.category_id);
+                const key = category ? `cat-${category.id}` : 'uncategorized';
+                const name = category?.name || 'Uncategorized';
+                const color = category?.color || '#9CA3AF';
+                if (!grouped.has(key)) {
+                  grouped.set(key, { name, color, templates: [] });
+                }
+                grouped.get(key)!.templates.push(template);
+              });
+              return Array.from(grouped.values()).map((group) => (
+                <div key={group.name}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: group.color }} />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{group.name}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 ml-5">
+                    {group.templates.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleTemplateClick(template)}
+                        disabled={submitting}
+                        className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 text-gray-800 dark:text-gray-200"
+                      >
+                        {template.name} (+{template.points})
+                        {template.days && (
+                          <span className="text-gray-500 dark:text-gray-400 ml-1">
+                            [{template.days.map(d => d.charAt(0).toUpperCase()).join('')}]
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </div>
       )}

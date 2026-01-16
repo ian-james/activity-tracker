@@ -45,8 +45,8 @@ def create_log(log: LogCreate, current_user: User = Depends(get_current_user)):
             raise HTTPException(status_code=400, detail="Activity already logged for this date")
 
         cursor.execute(
-            "INSERT INTO activity_logs (activity_id, completed_at, user_id) VALUES (?, ?, ?)",
-            (log.activity_id, log.completed_at.isoformat(), current_user.id)
+            "INSERT INTO activity_logs (activity_id, completed_at, energy_level, user_id) VALUES (?, ?, ?, ?)",
+            (log.activity_id, log.completed_at.isoformat(), log.energy_level, current_user.id)
         )
         log_id = cursor.lastrowid
         cursor.execute("SELECT * FROM activity_logs WHERE id = ?", (log_id,))

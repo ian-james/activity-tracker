@@ -116,12 +116,23 @@ class Activity(BaseModel):
 class LogCreate(BaseModel):
     activity_id: int
     completed_at: date
+    energy_level: Optional[str] = None
+
+    @field_validator('energy_level')
+    @classmethod
+    def validate_energy_level(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['low', 'medium', 'high']:
+            raise ValueError('Energy level must be low, medium, or high')
+        return v
 
 
 class Log(BaseModel):
     id: int
     activity_id: int
     completed_at: date
+    energy_level: Optional[str] = None
     created_at: datetime
 
 

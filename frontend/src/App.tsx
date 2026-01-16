@@ -9,7 +9,7 @@ import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
 import { LoginScreen } from './components/LoginScreen';
 import { useAuth } from './contexts/AuthContext';
-import { DayOfWeek, Activity } from './types';
+import { DayOfWeek, Activity, EnergyLevel } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
 
@@ -50,9 +50,9 @@ function AuthenticatedApp() {
     fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
   }, [dateStr, fetchLogs, fetchDailyScore, fetchWeeklyScore, fetchMonthlyScore, currentDate]);
 
-  const handleToggle = async (activityId: number, complete: boolean, logId?: number) => {
+  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null) => {
     if (complete) {
-      await createLog({ activity_id: activityId, completed_at: dateStr });
+      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel });
     } else if (logId) {
       await deleteLog(logId);
     }
