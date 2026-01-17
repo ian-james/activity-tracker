@@ -43,11 +43,43 @@ def calculate_score(start_date: date, end_date: date, period: str, user_id: int)
                 percentage=0.0
             )
 
+        # Get the first log date for this user to avoid counting expectations before they started
+        cursor.execute(
+            "SELECT MIN(completed_at) as first_log FROM activity_logs WHERE user_id = ?",
+            (user_id,)
+        )
+        first_log_row = cursor.fetchone()
+        first_log_date = None
+        if first_log_row and first_log_row['first_log']:
+            first_log_date = date.fromisoformat(first_log_row['first_log'])
+
+        # Don't count expectations before first log or after today
+        today = date.today()
+        actual_start = start_date
+        actual_end = min(end_date, today)
+
+        # If user has logged before, start from the later of start_date or first_log_date
+        if first_log_date:
+            actual_start = max(start_date, first_log_date)
+
+        # If the adjusted range is invalid, return empty score
+        if actual_start > actual_end:
+            return ScoreResponse(
+                period=period,
+                start_date=start_date,
+                end_date=end_date,
+                total_points=0,
+                max_possible_points=0,
+                completed_count=0,
+                total_activities=0,
+                percentage=0.0
+            )
+
         # Calculate max possible points considering schedules
         max_possible_points = 0
         total_scheduled_activities = 0
-        current = start_date
-        while current <= end_date:
+        current = actual_start
+        while current <= actual_end:
             for activity in activities:
                 if is_scheduled_for_day(activity["days_of_week"], current):
                     max_possible_points += activity["points"]
@@ -122,16 +154,39 @@ def get_score_history(days: int = Query(default=7, ge=1, le=90), current_user: U
     return history
 
 
-def calculate_max_points_and_activities(activities: list, start_date: date, end_date: date) -> tuple[int, int]:
+def calculate_max_points_and_activities(activities: list, start_date: date, end_date: date, user_id: int = None) -> tuple[int, int]:
     """Calculate max possible points and total scheduled activities for a period.
 
     Helper function to avoid code duplication.
+    Optionally takes user_id to adjust for first log date.
     """
+    # Adjust end_date to not include future
+    today = date.today()
+    actual_end = min(end_date, today)
+    actual_start = start_date
+
+    # If user_id provided, adjust start date to first log
+    if user_id:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT MIN(completed_at) as first_log FROM activity_logs WHERE user_id = ?",
+                (user_id,)
+            )
+            first_log_row = cursor.fetchone()
+            if first_log_row and first_log_row['first_log']:
+                first_log_date = date.fromisoformat(first_log_row['first_log'])
+                actual_start = max(start_date, first_log_date)
+
+    # If range is invalid, return zeros
+    if actual_start > actual_end:
+        return 0, 0
+
     max_possible_points = 0
     total_scheduled_activities = 0
-    current = start_date
+    current = actual_start
 
-    while current <= end_date:
+    while current <= actual_end:
         for activity in activities:
             if is_scheduled_for_day(activity["days_of_week"], current):
                 max_possible_points += activity["points"]
@@ -150,6 +205,18 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
     today = date.today()
     start_date = today - timedelta(days=days - 1)
     end_date = today
+
+    # Adjust start_date based on first log
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT MIN(completed_at) as first_log FROM activity_logs WHERE user_id = ?",
+            (current_user.id,)
+        )
+        first_log_row = cursor.fetchone()
+        if first_log_row and first_log_row['first_log']:
+            first_log_date = date.fromisoformat(first_log_row['first_log'])
+            start_date = max(start_date, first_log_date)
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -251,7 +318,7 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
             ]
 
             max_possible_points, total_scheduled_activities = calculate_max_points_and_activities(
-                activities_list, start_date, end_date
+                activities_list, start_date, end_date, current_user.id
             )
 
             total_points = sum(log['points'] for log in data['logs'])
@@ -277,7 +344,7 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
             ]
 
             max_possible_points, total_scheduled_activities = calculate_max_points_and_activities(
-                activities_list, start_date, end_date
+                activities_list, start_date, end_date, current_user.id
             )
 
             total_points = sum(log['points'] for log in uncategorized_data['logs'])

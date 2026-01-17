@@ -26,7 +26,7 @@ export function CalendarSquare({ entry }: CalendarSquareProps) {
 
   return (
     <div
-      className="relative flex-1"
+      className="relative"
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >

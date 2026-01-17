@@ -106,6 +106,18 @@ export function Dashboard() {
             </div>
           </div>
 
+          {/* Daily Progress */}
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h3 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Daily Progress</h3>
+            {loading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
+            ) : history.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 py-8">No data yet</div>
+            ) : (
+              <CalendarGrid history={history} timeRange={timeRange} />
+            )}
+          </div>
+
           {/* Category Progress */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
             <button
@@ -178,18 +190,6 @@ export function Dashboard() {
                   </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <h3 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">Daily Progress</h3>
-            {loading ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">Loading...</div>
-            ) : history.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">No data yet</div>
-            ) : (
-              <CalendarGrid history={history} timeRange={timeRange} />
             )}
           </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useActivities, useLogs, useScores } from './hooks/useApi';
 import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
@@ -9,7 +9,7 @@ import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
 import { LoginScreen } from './components/LoginScreen';
 import { useAuth } from './contexts/AuthContext';
-import { DayOfWeek, Activity, EnergyLevel } from './types';
+import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
 
@@ -24,6 +24,15 @@ function formatDisplayDate(date: Date): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+function isScheduledForDay(daysOfWeek: DayOfWeek[] | null, date: Date): boolean {
+  if (daysOfWeek === null) return true;
+  const WEEKDAY_MAP: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  const jsDay = date.getDay();
+  const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+  const dayName = WEEKDAY_MAP[dayIndex];
+  return daysOfWeek.includes(dayName);
 }
 
 function AuthenticatedApp() {
@@ -50,15 +59,60 @@ function AuthenticatedApp() {
     fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
   }, [dateStr, fetchLogs, fetchDailyScore, fetchWeeklyScore, fetchMonthlyScore, currentDate]);
 
-  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null) => {
+  // Calculate adjusted daily score excluding skipped activities
+  const adjustedDailyScore = useMemo(() => {
+    if (!dailyScore) return null;
+
+    // Get skipped activities from localStorage
+    const stored = localStorage.getItem(`skipped-activities-${dateStr}`);
+    let skippedIds: number[] = [];
+    if (stored) {
+      try {
+        skippedIds = JSON.parse(stored);
+      } catch {
+        skippedIds = [];
+      }
+    }
+
+    if (skippedIds.length === 0) return dailyScore;
+
+    // Find skipped activities that are scheduled for today
+    const skippedActivities = activities.filter(
+      a => skippedIds.includes(a.id) && isScheduledForDay(a.days_of_week, currentDate)
+    );
+
+    // Calculate total points for skipped activities
+    const skippedPoints = skippedActivities.reduce((sum, a) => sum + a.points, 0);
+    const skippedCount = skippedActivities.length;
+
+    // Adjust the score
+    const adjustedMaxPoints = dailyScore.max_possible_points - skippedPoints;
+    const adjustedTotalActivities = dailyScore.total_activities - skippedCount;
+    const adjustedPercentage = adjustedTotalActivities > 0
+      ? Math.round((dailyScore.completed_count / adjustedTotalActivities) * 100)
+      : 0;
+
+    const adjusted: Score = {
+      ...dailyScore,
+      max_possible_points: adjustedMaxPoints,
+      total_activities: adjustedTotalActivities,
+      percentage: adjustedPercentage,
+    };
+
+    return adjusted;
+  }, [dailyScore, activities, dateStr, currentDate]);
+
+  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null) => {
     if (complete) {
-      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel });
+      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel, quality_rating: qualityRating });
     } else if (logId) {
       await deleteLog(logId);
     }
-    fetchDailyScore(dateStr);
-    fetchWeeklyScore(dateStr);
-    fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
+    await Promise.all([
+      fetchDailyScore(dateStr),
+      fetchWeeklyScore(dateStr),
+      fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1)
+    ]);
   };
 
   const handleSubmitActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => {
@@ -69,10 +123,12 @@ function AuthenticatedApp() {
       await createActivity({ name, points, days_of_week: daysOfWeek, category_id: categoryId });
       setShowAddForm(false);
     }
-    fetchLogs();
-    fetchDailyScore(dateStr);
-    fetchWeeklyScore(dateStr);
-    fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
+    await Promise.all([
+      fetchLogs(),
+      fetchDailyScore(dateStr),
+      fetchWeeklyScore(dateStr),
+      fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1)
+    ]);
   };
 
   const handleEditActivity = (activity: Activity) => {
@@ -82,10 +138,12 @@ function AuthenticatedApp() {
 
   const handleDeleteActivity = async (id: number) => {
     await deleteActivity(id);
-    fetchLogs();
-    fetchDailyScore(dateStr);
-    fetchWeeklyScore(dateStr);
-    fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1);
+    await Promise.all([
+      fetchLogs(),
+      fetchDailyScore(dateStr),
+      fetchWeeklyScore(dateStr),
+      fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1)
+    ]);
   };
 
   const handleCancelForm = () => {
@@ -232,7 +290,7 @@ function AuthenticatedApp() {
             <div>
               <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Scores</h2>
               <ScoreDisplay
-                dailyScore={dailyScore}
+                dailyScore={adjustedDailyScore}
                 weeklyScore={weeklyScore}
                 monthlyScore={monthlyScore}
               />

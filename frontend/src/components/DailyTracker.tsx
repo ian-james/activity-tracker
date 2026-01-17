@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, Log, DayOfWeek, EnergyLevel } from '../types';
+import { Activity, Log, DayOfWeek, EnergyLevel, QualityRating } from '../types';
 import { useCategories } from '../hooks/useApi';
 
 const WEEKDAY_MAP: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -10,12 +10,18 @@ const ENERGY_ICONS = {
   high: '⚡⚡',
 };
 
+const QUALITY_ICONS = {
+  low: '⭐',
+  medium: '⭐⭐',
+  high: '⭐⭐⭐',
+};
+
 interface Props {
   activities: Activity[];
   logs: Log[];
   date: string;
   currentDate: Date;
-  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null) => Promise<void>;
+  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null) => Promise<void>;
 }
 
 function isScheduledForDay(daysOfWeek: DayOfWeek[] | null, date: Date): boolean {
@@ -33,13 +39,18 @@ type ViewMode = 'category' | 'schedule';
 export function DailyTracker({ activities, logs, currentDate, onToggle }: Props) {
   const { categories, fetchCategories } = useCategories();
   const [selectingEnergyFor, setSelectingEnergyFor] = useState<number | null>(null);
+  const [selectedEnergy, setSelectedEnergy] = useState<EnergyLevel | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('category');
   const [scheduleOrder, setScheduleOrder] = useState<number[]>([]);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [skippedActivities, setSkippedActivities] = useState<Set<number>>(new Set());
+  const [showSkipped, setShowSkipped] = useState(false);
 
   const completedIds = new Set(logs.map((l) => l.activity_id));
   const scheduledActivities = activities.filter((a) => isScheduledForDay(a.days_of_week, currentDate));
+  const activeActivities = scheduledActivities.filter((a) => !skippedActivities.has(a.id));
+  const skippedActivityList = scheduledActivities.filter((a) => skippedActivities.has(a.id));
 
   useEffect(() => {
     fetchCategories();
@@ -60,11 +71,41 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     }
   }, [currentDate]);
 
+  // Load skipped activities from localStorage
+  useEffect(() => {
+    const dateKey = currentDate.toISOString().split('T')[0];
+    const stored = localStorage.getItem(`skipped-activities-${dateKey}`);
+    if (stored) {
+      try {
+        setSkippedActivities(new Set(JSON.parse(stored)));
+      } catch {
+        setSkippedActivities(new Set());
+      }
+    } else {
+      setSkippedActivities(new Set());
+    }
+  }, [currentDate]);
+
   // Save schedule order to localStorage
   const updateScheduleOrder = (newOrder: number[]) => {
     const dateKey = currentDate.toISOString().split('T')[0];
     setScheduleOrder(newOrder);
     localStorage.setItem(`schedule-order-${dateKey}`, JSON.stringify(newOrder));
+  };
+
+  // Toggle skipped status for an activity
+  const toggleSkipActivity = (activityId: number) => {
+    const dateKey = currentDate.toISOString().split('T')[0];
+    setSkippedActivities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(activityId)) {
+        newSet.delete(activityId);
+      } else {
+        newSet.add(activityId);
+      }
+      localStorage.setItem(`skipped-activities-${dateKey}`, JSON.stringify(Array.from(newSet)));
+      return newSet;
+    });
   };
 
   const handleActivityClick = (activityId: number, isCompleted: boolean, logId?: number) => {
@@ -74,12 +115,20 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     } else {
       // If not completed, show energy level selector
       setSelectingEnergyFor(activityId);
+      setSelectedEnergy(null);
     }
   };
 
-  const handleEnergySelect = async (activityId: number, energyLevel: EnergyLevel | null) => {
-    await onToggle(activityId, true, undefined, energyLevel);
+  const handleEnergySelect = (activityId: number, energyLevel: EnergyLevel | null) => {
+    // Store energy selection and keep selector open for quality rating
+    setSelectedEnergy(energyLevel);
+  };
+
+  const handleQualitySelect = async (activityId: number, qualityRating: QualityRating | null) => {
+    // Complete the activity with both energy and quality
+    await onToggle(activityId, true, undefined, selectedEnergy, qualityRating);
     setSelectingEnergyFor(null);
+    setSelectedEnergy(null);
   };
 
   const toggleCategoryCollapse = (categoryKey: string) => {
@@ -97,7 +146,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const groupedActivities = () => {
     const grouped = new Map<string, { name: string; color: string; activities: Activity[] }>();
 
-    scheduledActivities.forEach(activity => {
+    activeActivities.forEach(activity => {
       const category = categories.find(c => c.id === activity.category_id);
       const key = category ? `cat-${category.id}` : 'uncategorized';
       const name = category?.name || 'Uncategorized';
@@ -109,19 +158,31 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
       grouped.get(key)!.activities.push(activity);
     });
 
+    // Apply schedule order to activities within each category
+    const orderedActivities = getOrderedActivities();
+    const orderMap = new Map(orderedActivities.map((a, idx) => [a.id, idx]));
+
+    grouped.forEach((group) => {
+      group.activities.sort((a, b) => {
+        const orderA = orderMap.get(a.id) ?? Number.MAX_VALUE;
+        const orderB = orderMap.get(b.id) ?? Number.MAX_VALUE;
+        return orderA - orderB;
+      });
+    });
+
     return Array.from(grouped.entries());
   };
 
   const getOrderedActivities = () => {
-    // Get all activity IDs that are scheduled for today
-    const scheduledIds = new Set(scheduledActivities.map(a => a.id));
+    // Get all activity IDs that are active (not skipped) for today
+    const activeIds = new Set(activeActivities.map(a => a.id));
 
-    // Filter stored order to only include activities scheduled today
-    const validOrder = scheduleOrder.filter(id => scheduledIds.has(id));
+    // Filter stored order to only include active activities for today
+    const validOrder = scheduleOrder.filter(id => activeIds.has(id));
 
     // Add any new activities that aren't in the order yet
     const orderedIds = new Set(validOrder);
-    const newActivities = scheduledActivities.filter(a => !orderedIds.has(a.id));
+    const newActivities = activeActivities.filter(a => !orderedIds.has(a.id));
     const finalOrder = [...validOrder, ...newActivities.map(a => a.id)];
 
     // If order changed, update it
@@ -130,7 +191,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     }
 
     // Return activities in the specified order
-    return finalOrder.map(id => scheduledActivities.find(a => a.id === id)).filter(Boolean) as Activity[];
+    return finalOrder.map(id => activeActivities.find(a => a.id === id)).filter(Boolean) as Activity[];
   };
 
   const handleDragStart = (activityId: number) => {
@@ -170,6 +231,27 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     return (
       <div className="text-gray-500 dark:text-gray-400 text-center py-8">
         No activities scheduled for this day.
+      </div>
+    );
+  }
+
+  if (activeActivities.length === 0 && skippedActivityList.length > 0) {
+    return (
+      <div className="space-y-3">
+        <div className="text-gray-500 dark:text-gray-400 text-center py-8">
+          All activities skipped for today.
+        </div>
+        {/* Skipped Activities Section */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="p-3 bg-gray-50 dark:bg-gray-700">
+            <span className="font-medium text-gray-800 dark:text-gray-200">
+              Skipped Activities ({skippedActivityList.length})
+            </span>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700 opacity-60">
+            {skippedActivityList.map((activity) => renderActivityItem(activity, false))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -238,6 +320,11 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                     {ENERGY_ICONS[log.energy_level]}
                   </span>
                 )}
+                {isCompleted && log?.quality_rating && (
+                  <span className="text-lg" title={`Quality: ${log.quality_rating}`}>
+                    {QUALITY_ICONS[log.quality_rating]}
+                  </span>
+                )}
               </div>
               {activity.days_of_week && (
                 <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -246,41 +333,91 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
               )}
             </div>
           </div>
-          <span className={`font-semibold ${isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-            +{activity.points} pts
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`font-semibold ${isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              +{activity.points} pts
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSkipActivity(activity.id);
+              }}
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Skip for today"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Energy Level Selector */}
+        {/* Energy and Quality Selector */}
         {showingEnergySelector && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">How was your energy level?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleEnergySelect(activity.id, 'low')}
-                className="flex-1 py-2 px-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-sm font-medium"
-              >
-                🔋 Low
-              </button>
-              <button
-                onClick={() => handleEnergySelect(activity.id, 'medium')}
-                className="flex-1 py-2 px-3 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm font-medium"
-              >
-                ⚡ Medium
-              </button>
-              <button
-                onClick={() => handleEnergySelect(activity.id, 'high')}
-                className="flex-1 py-2 px-3 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 text-sm font-medium"
-              >
-                ⚡⚡ High
-              </button>
-            </div>
-            <button
-              onClick={() => handleEnergySelect(activity.id, null)}
-              className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-            >
-              Skip
-            </button>
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border-t border-blue-200 dark:border-blue-800 space-y-3">
+            {/* Energy Level Selector */}
+            {selectedEnergy === null ? (
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">How was your energy level?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEnergySelect(activity.id, 'low')}
+                    className="flex-1 py-2 px-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded hover:bg-yellow-200 dark:hover:bg-yellow-900/50 text-sm font-medium"
+                  >
+                    🔋 Low
+                  </button>
+                  <button
+                    onClick={() => handleEnergySelect(activity.id, 'medium')}
+                    className="flex-1 py-2 px-3 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm font-medium"
+                  >
+                    ⚡ Medium
+                  </button>
+                  <button
+                    onClick={() => handleEnergySelect(activity.id, 'high')}
+                    className="flex-1 py-2 px-3 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/50 text-sm font-medium"
+                  >
+                    ⚡⚡ High
+                  </button>
+                </div>
+                <button
+                  onClick={() => handleEnergySelect(activity.id, null)}
+                  className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  Skip
+                </button>
+              </div>
+            ) : (
+              /* Quality Rating Selector */
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">How well did you do?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleQualitySelect(activity.id, 'low')}
+                    className="flex-1 py-2 px-3 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-900/50 text-sm font-medium"
+                  >
+                    ⭐ Okay
+                  </button>
+                  <button
+                    onClick={() => handleQualitySelect(activity.id, 'medium')}
+                    className="flex-1 py-2 px-3 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 text-sm font-medium"
+                  >
+                    ⭐⭐ Good
+                  </button>
+                  <button
+                    onClick={() => handleQualitySelect(activity.id, 'high')}
+                    className="flex-1 py-2 px-3 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 text-sm font-medium"
+                  >
+                    ⭐⭐⭐ Excellent
+                  </button>
+                </div>
+                <button
+                  onClick={() => handleQualitySelect(activity.id, null)}
+                  className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                >
+                  Skip
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -369,6 +506,36 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {getOrderedActivities().map((activity) => renderActivityItem(activity, true))}
           </div>
+        </div>
+      )}
+
+      {/* Skipped Activities Section */}
+      {skippedActivityList.length > 0 && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowSkipped(!showSkipped)}
+            className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+          >
+            <span className="font-medium text-gray-800 dark:text-gray-200">
+              Skipped for Today ({skippedActivityList.length})
+            </span>
+            <svg
+              className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+                showSkipped ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showSkipped && (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 opacity-60">
+              {skippedActivityList.map((activity) => renderActivityItem(activity, false))}
+            </div>
+          )}
         </div>
       )}
     </div>

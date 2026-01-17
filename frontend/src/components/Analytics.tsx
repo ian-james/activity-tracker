@@ -152,6 +152,48 @@ export function Analytics() {
         </div>
       </div>
 
+      {/* Trend Analysis */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
+          📈 Trend Analysis
+        </h3>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">First Half Average</div>
+            <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              {data.trend.first_half_avg}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">completions/day</div>
+          </div>
+
+          <div className={`text-4xl ${getTrendColor(data.trend.direction)}`}>
+            {getTrendIcon(data.trend.direction)}
+          </div>
+
+          <div className="flex-1 text-right">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Second Half Average</div>
+            <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+              {data.trend.second_half_avg}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">completions/day</div>
+          </div>
+        </div>
+
+        <div className={`mt-4 p-3 rounded-lg text-sm ${
+          data.trend.direction === 'improving'
+            ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+            : data.trend.direction === 'declining'
+            ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+        }`}>
+          <strong>
+            {data.trend.direction === 'improving' && '🎉 Great job! Your activity completion is improving.'}
+            {data.trend.direction === 'declining' && '⚠️ Your activity completion has declined. Consider adjusting your goals.'}
+            {data.trend.direction === 'stable' && '✅ Your activity completion is consistent.'}
+          </strong>
+        </div>
+      </div>
+
       {/* Completion by Day of Week */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
@@ -249,48 +291,6 @@ export function Analytics() {
           </div>
         </div>
       )}
-
-      {/* Trend Analysis */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
-          📈 Trend Analysis
-        </h3>
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">First Half Average</div>
-            <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              {data.trend.first_half_avg}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">completions/day</div>
-          </div>
-
-          <div className={`text-4xl ${getTrendColor(data.trend.direction)}`}>
-            {getTrendIcon(data.trend.direction)}
-          </div>
-
-          <div className="flex-1 text-right">
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Second Half Average</div>
-            <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-              {data.trend.second_half_avg}
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">completions/day</div>
-          </div>
-        </div>
-
-        <div className={`mt-4 p-3 rounded-lg text-sm ${
-          data.trend.direction === 'improving'
-            ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200'
-            : data.trend.direction === 'declining'
-            ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
-            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
-        }`}>
-          <strong>
-            {data.trend.direction === 'improving' && '🎉 Great job! Your activity completion is improving.'}
-            {data.trend.direction === 'declining' && '⚠️ Your activity completion has declined. Consider adjusting your goals.'}
-            {data.trend.direction === 'stable' && '✅ Your activity completion is consistent.'}
-          </strong>
-        </div>
-      </div>
     </div>
   );
 }

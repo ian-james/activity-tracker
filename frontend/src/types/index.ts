@@ -28,12 +28,14 @@ export interface ActivityCreate {
 }
 
 export type EnergyLevel = 'low' | 'medium' | 'high';
+export type QualityRating = 'low' | 'medium' | 'high';
 
 export interface Log {
   id: number;
   activity_id: number;
   completed_at: string;
   energy_level?: EnergyLevel | null;
+  quality_rating?: QualityRating | null;
   created_at: string;
 }
 
@@ -41,6 +43,7 @@ export interface LogCreate {
   activity_id: number;
   completed_at: string;
   energy_level?: EnergyLevel | null;
+  quality_rating?: QualityRating | null;
 }
 
 export interface Score {

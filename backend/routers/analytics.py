@@ -95,12 +95,14 @@ async def get_streaks(current_user: User = Depends(get_current_user)):
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # Get all active activities
+            # Get all active activities with category info
             cursor.execute("""
-                SELECT id, name, points
-                FROM activities
-                WHERE user_id = ? AND is_active = 1
-                ORDER BY name
+                SELECT a.id, a.name, a.points, a.category_id,
+                       c.name as category_name, c.color as category_color
+                FROM activities a
+                LEFT JOIN categories c ON a.category_id = c.id
+                WHERE a.user_id = ? AND a.is_active = 1
+                ORDER BY a.name
             """, (current_user.id,))
             activities = cursor.fetchall()
 
@@ -127,7 +129,10 @@ async def get_streaks(current_user: User = Depends(get_current_user)):
                     "points": activity['points'],
                     "current_streak": streak_info['current_streak'],
                     "longest_streak": streak_info['longest_streak'],
-                    "last_completed": streak_info['last_completed']
+                    "last_completed": streak_info['last_completed'],
+                    "category_id": activity['category_id'],
+                    "category_name": activity['category_name'],
+                    "category_color": activity['category_color']
                 })
 
                 total_current_streak += streak_info['current_streak']
@@ -166,9 +171,20 @@ async def get_statistics(
         with get_db() as conn:
             cursor = conn.cursor()
 
-            # Date range for analysis
+            # Date range for analysis - end at today, not future
             end_date = datetime.utcnow().date()
             start_date = end_date - timedelta(days=days)
+
+            # Get the first log date to avoid counting expectations before user started
+            cursor.execute(
+                "SELECT MIN(completed_at) as first_log FROM activity_logs WHERE user_id = ?",
+                (current_user.id,)
+            )
+            first_log_row = cursor.fetchone()
+            if first_log_row and first_log_row['first_log']:
+                first_log_date = datetime.fromisoformat(first_log_row['first_log']).date()
+                # Start from first log if it's later than requested start_date
+                start_date = max(start_date, first_log_date)
 
             # Get all active activities
             cursor.execute("""
@@ -203,7 +219,12 @@ async def get_statistics(
                 }
 
             # Count expected completions for each activity
-            for single_date in (start_date + timedelta(n) for n in range(days + 1)):
+            # Calculate actual days in range (adjusted for first log and today)
+            actual_days = (end_date - start_date).days + 1
+            for single_date in (start_date + timedelta(n) for n in range(actual_days)):
+                # Skip future dates
+                if single_date > end_date:
+                    break
                 day_of_week = single_date.weekday()
 
                 for act_id, act in activities.items():
@@ -259,19 +280,23 @@ async def get_statistics(
                 })
 
             # Get best and worst performing activities
-            activity_list = list(activity_stats.values())
+            # Filter out activities with 0 expected completions (not scheduled during this period)
+            activity_list = [a for a in activity_stats.values() if a['expected'] > 0]
             activity_list.sort(key=lambda x: x['completion_rate'], reverse=True)
 
             best_activities = activity_list[:5] if len(activity_list) >= 5 else activity_list
             worst_activities = list(reversed(activity_list[-5:])) if len(activity_list) >= 5 else list(reversed(activity_list))
 
             # Calculate time trends (compare first half vs second half)
-            mid_date = start_date + timedelta(days=days // 2)
+            # Use actual_days instead of requested days for accurate trend calculation
+            mid_date = start_date + timedelta(days=actual_days // 2)
             first_half_logs = [log for log in logs if datetime.fromisoformat(log['completed_at']).date() < mid_date]
             second_half_logs = [log for log in logs if datetime.fromisoformat(log['completed_at']).date() >= mid_date]
 
-            first_half_rate = len(first_half_logs) / (days // 2) if days > 0 else 0
-            second_half_rate = len(second_half_logs) / (days - days // 2) if days > 0 else 0
+            first_half_days = actual_days // 2
+            second_half_days = actual_days - first_half_days
+            first_half_rate = len(first_half_logs) / first_half_days if first_half_days > 0 else 0
+            second_half_rate = len(second_half_logs) / second_half_days if second_half_days > 0 else 0
 
             trend = "stable"
             if second_half_rate > first_half_rate * 1.1:
@@ -283,7 +308,7 @@ async def get_statistics(
                 "date_range": {
                     "start_date": str(start_date),
                     "end_date": str(end_date),
-                    "days": days
+                    "days": actual_days
                 },
                 "completion_by_day_of_week": completion_by_day,
                 "best_activities": best_activities,
@@ -291,7 +316,7 @@ async def get_statistics(
                 "overall_stats": {
                     "total_activities": len(activities),
                     "total_completions": len(logs),
-                    "average_per_day": round(len(logs) / days, 1) if days > 0 else 0,
+                    "average_per_day": round(len(logs) / actual_days, 1) if actual_days > 0 else 0,
                     "overall_completion_rate": round(
                         (len(logs) / sum(a["expected"] for a in activity_stats.values()) * 100)
                         if sum(a["expected"] for a in activity_stats.values()) > 0 else 0,

@@ -7,6 +7,9 @@ interface StreakData {
   current_streak: number;
   longest_streak: number;
   last_completed: string | null;
+  category_id: number | null;
+  category_name: string | null;
+  category_color: string | null;
 }
 
 interface StreakSummary {
@@ -86,6 +89,23 @@ export function Streaks() {
     return 'On Fire!';
   };
 
+  const groupStreaksByCategory = () => {
+    const grouped = new Map<string, { name: string; color: string; streaks: StreakData[] }>();
+
+    data!.streaks.forEach(streak => {
+      const key = streak.category_id ? `cat-${streak.category_id}` : 'uncategorized';
+      const name = streak.category_name || 'Uncategorized';
+      const color = streak.category_color || '#6B7280';
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { name, color, streaks: [] });
+      }
+      grouped.get(key)!.streaks.push(streak);
+    });
+
+    return Array.from(grouped.entries());
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -119,91 +139,6 @@ export function Streaks() {
         </div>
       </div>
 
-      {/* Streak List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            Activity Streaks
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Keep your streaks alive by completing activities daily
-          </p>
-        </div>
-
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {data.streaks.map((streak) => (
-            <div
-              key={streak.activity_id}
-              className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="text-3xl">
-                    {getStreakEmoji(streak.current_streak)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800 dark:text-gray-100">
-                      {streak.activity_name}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {streak.points} points
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                      {streak.current_streak}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {getStreakBadge(streak.current_streak)}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-lg font-semibold text-gray-600 dark:text-gray-400">
-                      {streak.longest_streak}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Best
-                    </div>
-                  </div>
-
-                  {streak.last_completed && (
-                    <div className="text-right hidden md:block">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(streak.last_completed).toLocaleDateString()}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Last
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress bar for current streak */}
-              {streak.current_streak > 0 && (
-                <div className="mt-3">
-                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
-                      style={{
-                        width: `${Math.min((streak.current_streak / 30) * 100, 100)}%`,
-                      }}
-                    />
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {streak.current_streak < 30 ? `${30 - streak.current_streak} days to 30-day milestone` : '30+ day streak!'}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Motivation Message */}
       {data.summary.active_streaks > 0 && (
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow p-6 text-white">
@@ -216,6 +151,98 @@ export function Streaks() {
           </div>
         </div>
       )}
+
+      {/* Streak List Grouped by Category */}
+      <div className="space-y-4">
+        {groupStreaksByCategory().map(([key, group]) => (
+          <div key={key} className="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: group.color }}
+                />
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                  {group.name}
+                </h3>
+              </div>
+            </div>
+
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {group.streaks.map((streak) => (
+                <div
+                  key={streak.activity_id}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="text-3xl">
+                        {getStreakEmoji(streak.current_streak)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-800 dark:text-gray-100">
+                          {streak.activity_name}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {streak.points} points
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                          {streak.current_streak}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {getStreakBadge(streak.current_streak)}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-gray-600 dark:text-gray-400">
+                          {streak.longest_streak}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Best
+                        </div>
+                      </div>
+
+                      {streak.last_completed && (
+                        <div className="text-right hidden md:block">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {new Date(streak.last_completed).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Last
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress bar for current streak */}
+                  {streak.current_streak > 0 && (
+                    <div className="mt-3">
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all"
+                          style={{
+                            width: `${Math.min((streak.current_streak / 30) * 100, 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {streak.current_streak < 30 ? `${30 - streak.current_streak} days to 30-day milestone` : '30+ day streak!'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

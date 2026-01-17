@@ -6,6 +6,16 @@ interface CalendarGridProps {
   timeRange: 7 | 14 | 28;
 }
 
+function getDayLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { weekday: 'short' });
+}
+
+function getDateLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function CalendarGrid({ history, timeRange }: CalendarGridProps) {
   // Calculate rows: 7 days -> 1 row, 14 days -> 2 rows, 28 days -> 4 rows
   const rows = timeRange / 7;
@@ -17,12 +27,24 @@ export function CalendarGrid({ history, timeRange }: CalendarGridProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {weekRows.map((week, weekIndex) => (
-        <div key={weekIndex} className="flex gap-2">
-          {week.map((entry) => (
-            <CalendarSquare key={entry.date} entry={entry} />
-          ))}
+        <div key={weekIndex}>
+          <div className="flex gap-2">
+            {week.map((entry) => (
+              <div key={entry.date} className="flex-1">
+                <CalendarSquare entry={entry} />
+                <div className="mt-1 text-center">
+                  <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {getDayLabel(entry.date)}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {getDateLabel(entry.date)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>

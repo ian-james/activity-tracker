@@ -117,6 +117,7 @@ class LogCreate(BaseModel):
     activity_id: int
     completed_at: date
     energy_level: Optional[str] = None
+    quality_rating: Optional[str] = None
 
     @field_validator('energy_level')
     @classmethod
@@ -127,12 +128,22 @@ class LogCreate(BaseModel):
             raise ValueError('Energy level must be low, medium, or high')
         return v
 
+    @field_validator('quality_rating')
+    @classmethod
+    def validate_quality_rating(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['low', 'medium', 'high']:
+            raise ValueError('Quality rating must be low, medium, or high')
+        return v
+
 
 class Log(BaseModel):
     id: int
     activity_id: int
     completed_at: date
     energy_level: Optional[str] = None
+    quality_rating: Optional[str] = None
     created_at: datetime
 
 
