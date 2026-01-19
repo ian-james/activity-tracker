@@ -9,7 +9,7 @@ interface Props {
   initialActivity?: Activity;
 }
 
-const POINT_OPTIONS = [5, 10, 25, 50, 100, 200];
+const POINT_OPTIONS = [-200, -100, -50, -25, -10, -5, 5, 10, 25, 50, 100, 200];
 
 export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   const { categories, fetchCategories } = useCategories();
@@ -93,7 +93,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
                         disabled={submitting}
                         className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-3 py-1 rounded text-sm disabled:opacity-50 text-gray-800 dark:text-gray-200"
                       >
-                        {template.name} (+{template.points})
+                        {template.name} ({template.points > 0 ? '+' : ''}{template.points})
                         {template.days && (
                           <span className="text-gray-500 dark:text-gray-400 ml-1">
                             [{template.days.map(d => d.charAt(0).toUpperCase()).join('')}]
@@ -124,12 +124,12 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
             <select
               value={points}
               onChange={(e) => setPoints(Number(e.target.value))}
-              className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              className="w-28 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
               disabled={submitting}
             >
               {POINT_OPTIONS.map((p) => (
                 <option key={p} value={p}>
-                  {p} pts
+                  {p > 0 ? '+' : ''}{p} pts
                 </option>
               ))}
             </select>

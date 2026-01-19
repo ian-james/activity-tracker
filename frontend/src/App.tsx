@@ -81,12 +81,12 @@ function AuthenticatedApp() {
       a => skippedIds.includes(a.id) && isScheduledForDay(a.days_of_week, currentDate)
     );
 
-    // Calculate total points for skipped activities
-    const skippedPoints = skippedActivities.reduce((sum, a) => sum + a.points, 0);
+    // Calculate total points for skipped activities (only positive points affect max)
+    const skippedPositivePoints = skippedActivities.reduce((sum, a) => sum + (a.points > 0 ? a.points : 0), 0);
     const skippedCount = skippedActivities.length;
 
     // Adjust the score
-    const adjustedMaxPoints = dailyScore.max_possible_points - skippedPoints;
+    const adjustedMaxPoints = dailyScore.max_possible_points - skippedPositivePoints;
     const adjustedTotalActivities = dailyScore.total_activities - skippedCount;
     const adjustedPercentage = adjustedTotalActivities > 0
       ? Math.round((dailyScore.completed_count / adjustedTotalActivities) * 100)
@@ -260,6 +260,15 @@ function AuthenticatedApp() {
             </div>
 
             <div>
+              <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Scores</h2>
+              <ScoreDisplay
+                dailyScore={adjustedDailyScore}
+                weeklyScore={weeklyScore}
+                monthlyScore={monthlyScore}
+              />
+            </div>
+
+            <div>
               <button
                 onClick={() => setShowActivities(!showActivities)}
                 className="flex items-center justify-between w-full mb-3"
@@ -285,15 +294,6 @@ function AuthenticatedApp() {
                   onToggle={handleToggle}
                 />
               )}
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-100">Scores</h2>
-              <ScoreDisplay
-                dailyScore={adjustedDailyScore}
-                weeklyScore={weeklyScore}
-                monthlyScore={monthlyScore}
-              />
             </div>
           </div>
         )}

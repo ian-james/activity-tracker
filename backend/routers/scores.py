@@ -76,13 +76,16 @@ def calculate_score(start_date: date, end_date: date, period: str, user_id: int)
             )
 
         # Calculate max possible points considering schedules
+        # Only positive points contribute to max_possible_points
         max_possible_points = 0
         total_scheduled_activities = 0
         current = actual_start
         while current <= actual_end:
             for activity in activities:
                 if is_scheduled_for_day(activity["days_of_week"], current):
-                    max_possible_points += activity["points"]
+                    # Only add positive points to max possible
+                    if activity["points"] > 0:
+                        max_possible_points += activity["points"]
                     total_scheduled_activities += 1
             current += timedelta(days=1)
 
@@ -189,7 +192,9 @@ def calculate_max_points_and_activities(activities: list, start_date: date, end_
     while current <= actual_end:
         for activity in activities:
             if is_scheduled_for_day(activity["days_of_week"], current):
-                max_possible_points += activity["points"]
+                # Only add positive points to max possible
+                if activity["points"] > 0:
+                    max_possible_points += activity["points"]
                 total_scheduled_activities += 1
         current += timedelta(days=1)
 

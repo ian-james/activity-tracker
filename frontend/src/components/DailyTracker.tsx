@@ -334,8 +334,12 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`font-semibold ${isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              +{activity.points} pts
+            <span className={`font-semibold ${
+              activity.points < 0
+                ? (isCompleted ? 'text-red-600 dark:text-red-400' : 'text-red-500 dark:text-red-400')
+                : (isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400')
+            }`}>
+              {activity.points > 0 ? '+' : ''}{activity.points} pts
             </span>
             <button
               onClick={(e) => {

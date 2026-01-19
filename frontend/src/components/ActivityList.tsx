@@ -53,7 +53,9 @@ export function ActivityList({ activities, onEdit, onDelete }: Props) {
                   {getCategoryName(activity.category_id)?.name}
                 </span>
               )}
-              <span className="text-gray-500 dark:text-gray-400">+{activity.points} pts</span>
+              <span className={activity.points < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}>
+                {activity.points > 0 ? '+' : ''}{activity.points} pts
+              </span>
             </div>
             <div className="text-xs text-gray-400 dark:text-gray-500">
               {formatDays(activity.days_of_week)}

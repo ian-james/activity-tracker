@@ -26,8 +26,10 @@ class ActivityCreate(BaseModel):
     @field_validator('points')
     @classmethod
     def validate_points(cls, v: int) -> int:
-        if v < 1:
-            raise ValueError('Points must be at least 1')
+        if v == 0:
+            raise ValueError('Points cannot be 0')
+        if v < -1000:
+            raise ValueError('Points cannot be less than -1000')
         if v > 1000:
             raise ValueError('Points cannot exceed 1000')
         return v
@@ -76,8 +78,10 @@ class ActivityUpdate(BaseModel):
     def validate_points(cls, v: Optional[int]) -> Optional[int]:
         if v is None:
             return v
-        if v < 1:
-            raise ValueError('Points must be at least 1')
+        if v == 0:
+            raise ValueError('Points cannot be 0')
+        if v < -1000:
+            raise ValueError('Points cannot be less than -1000')
         if v > 1000:
             raise ValueError('Points cannot exceed 1000')
         return v
