@@ -300,3 +300,27 @@ export interface ExerciseProgressResponse {
   progress: DailyProgressData[];
   summary: ExerciseProgressSummary;
 }
+
+// Todo Types
+
+export interface Todo {
+  id: number;
+  user_id: number;
+  text: string;
+  is_completed: boolean;
+  completed_at: string | null;
+  order_index: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TodoCreate {
+  text: string;
+  order_index?: number;
+}
+
+export interface TodoUpdate {
+  text?: string;
+  is_completed?: boolean;
+  order_index?: number;
+}

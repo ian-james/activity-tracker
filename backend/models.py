@@ -552,3 +552,49 @@ class TemplateExercise(BaseModel):
     rest_seconds: int
     notes: Optional[str]
     created_at: datetime
+
+
+# Todo Models
+
+class TodoCreate(BaseModel):
+    text: str
+    order_index: int = 0
+
+    @field_validator('text')
+    @classmethod
+    def validate_text(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Text cannot be empty')
+        if len(v) > 500:
+            raise ValueError('Text cannot exceed 500 characters')
+        return v
+
+
+class TodoUpdate(BaseModel):
+    text: Optional[str] = None
+    is_completed: Optional[bool] = None
+    order_index: Optional[int] = None
+
+    @field_validator('text')
+    @classmethod
+    def validate_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Text cannot be empty')
+        if len(v) > 500:
+            raise ValueError('Text cannot exceed 500 characters')
+        return v
+
+
+class Todo(BaseModel):
+    id: int
+    user_id: int
+    text: str
+    is_completed: bool
+    completed_at: Optional[datetime]
+    order_index: int
+    created_at: datetime
+    updated_at: datetime

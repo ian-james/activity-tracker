@@ -282,4 +282,21 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_template_exercises_template ON template_exercises(template_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_template_exercises_exercise ON template_exercises(exercise_id)")
 
+        # Create todos table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS todos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                is_completed INTEGER NOT NULL DEFAULT 0,
+                completed_at DATETIME,
+                order_index INTEGER NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_user ON todos(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(is_completed)")
+
         logger.info("Exercise tracking tables created/verified")
