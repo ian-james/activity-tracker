@@ -97,3 +97,206 @@ export interface CategorySummary {
   total_activities: number;
   percentage: number;
 }
+
+// Exercise Tracking Types
+
+export type ExerciseType = 'reps' | 'time' | 'weight';
+export type WeightUnit = 'lbs' | 'kg';
+
+export interface Exercise {
+  id: number;
+  user_id: number;
+  name: string;
+  exercise_type: ExerciseType;
+  default_value: number | null;
+  default_weight_unit: WeightUnit | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ExerciseCreate {
+  name: string;
+  exercise_type: ExerciseType;
+  default_value?: number | null;
+  default_weight_unit?: WeightUnit | null;
+  notes?: string | null;
+}
+
+export interface ExerciseUpdate {
+  name?: string;
+  exercise_type?: ExerciseType;
+  default_value?: number | null;
+  default_weight_unit?: WeightUnit | null;
+  notes?: string | null;
+}
+
+export interface WorkoutSession {
+  id: number;
+  user_id: number;
+  name: string | null;
+  started_at: string;
+  completed_at: string | null;
+  paused_duration: number;
+  total_duration: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface WorkoutSessionCreate {
+  name?: string | null;
+  started_at: string;
+  notes?: string | null;
+}
+
+export interface WorkoutSessionUpdate {
+  name?: string | null;
+  completed_at?: string | null;
+  paused_duration?: number;
+  total_duration?: number;
+  notes?: string | null;
+}
+
+export interface SessionExercise {
+  id: number;
+  workout_session_id: number;
+  exercise_id: number;
+  order_index: number;
+  target_sets: number;
+  target_value: number | null;
+  rest_seconds: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SessionExerciseCreate {
+  workout_session_id: number;
+  exercise_id: number;
+  order_index: number;
+  target_sets?: number;
+  target_value?: number | null;
+  rest_seconds?: number;
+  notes?: string | null;
+}
+
+export interface ExerciseSet {
+  id: number;
+  session_exercise_id: number;
+  set_number: number;
+  reps: number | null;
+  duration_seconds: number | null;
+  weight: number | null;
+  weight_unit: WeightUnit | null;
+  completed_at: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface ExerciseSetCreate {
+  session_exercise_id: number;
+  set_number: number;
+  reps?: number | null;
+  duration_seconds?: number | null;
+  weight?: number | null;
+  weight_unit?: WeightUnit | null;
+  completed_at: string;
+  notes?: string | null;
+}
+
+export interface UserPreferences {
+  id: number;
+  user_id: number;
+  weight_unit: WeightUnit;
+  default_rest_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserPreferencesUpdate {
+  weight_unit?: WeightUnit;
+  default_rest_seconds?: number;
+}
+
+// Extended types with related data for UI
+export interface SessionExerciseWithDetails extends SessionExercise {
+  exercise: Exercise;
+  sets: ExerciseSet[];
+}
+
+// Workout Template Types
+
+export interface WorkoutTemplate {
+  id: number;
+  user_id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutTemplateCreate {
+  name: string;
+  description?: string | null;
+}
+
+export interface WorkoutTemplateUpdate {
+  name?: string;
+  description?: string | null;
+}
+
+export interface TemplateExercise {
+  id: number;
+  template_id: number;
+  exercise_id: number;
+  order_index: number;
+  target_sets: number;
+  target_value: number | null;
+  rest_seconds: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface TemplateExerciseCreate {
+  template_id: number;
+  exercise_id: number;
+  order_index: number;
+  target_sets?: number;
+  target_value?: number | null;
+  rest_seconds?: number;
+  notes?: string | null;
+}
+
+// Extended template type with exercises
+export interface WorkoutTemplateWithExercises extends WorkoutTemplate {
+  exercises: TemplateExercise[];
+}
+
+// Exercise Progress Types
+
+export interface DailyProgressData {
+  date: string;
+  total_sets: number;
+  total_reps: number;
+  total_duration: number;
+  max_weight: number;
+  max_reps: number;
+  max_duration: number;
+  avg_weight: number;
+  weight_unit: WeightUnit | null;
+}
+
+export interface ExerciseProgressSummary {
+  total_workouts: number;
+  total_sets: number;
+  total_reps: number;
+  total_duration: number;
+}
+
+export interface ExerciseProgressResponse {
+  exercise: Exercise;
+  start_date: string;
+  end_date: string;
+  progress: DailyProgressData[];
+  summary: ExerciseProgressSummary;
+}

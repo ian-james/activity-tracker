@@ -161,3 +161,125 @@ def init_db():
             cursor.execute("ALTER TABLE activity_logs ADD COLUMN user_id INTEGER")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_logs_user ON activity_logs(user_id)")
             logger.info("Added user_id column to activity_logs table")
+
+        # Create exercises table for exercise library
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS exercises (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                exercise_type TEXT NOT NULL CHECK(exercise_type IN ('reps', 'time', 'weight')),
+                default_value REAL,
+                default_weight_unit TEXT CHECK(default_weight_unit IN ('lbs', 'kg', NULL)),
+                notes TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_exercises_user ON exercises(user_id)")
+
+        # Create workout_sessions table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workout_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT,
+                started_at DATETIME NOT NULL,
+                completed_at DATETIME,
+                paused_duration INTEGER DEFAULT 0,
+                total_duration INTEGER,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_sessions_user ON workout_sessions(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_sessions_started ON workout_sessions(started_at)")
+
+        # Create session_exercises table (exercises added to a workout session)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS session_exercises (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                workout_session_id INTEGER NOT NULL,
+                exercise_id INTEGER NOT NULL,
+                order_index INTEGER NOT NULL,
+                target_sets INTEGER DEFAULT 1,
+                target_value REAL,
+                rest_seconds INTEGER DEFAULT 60,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (workout_session_id) REFERENCES workout_sessions (id) ON DELETE CASCADE,
+                FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_session_exercises_workout ON session_exercises(workout_session_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_session_exercises_exercise ON session_exercises(exercise_id)")
+
+        # Create exercise_sets table (individual sets logged)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS exercise_sets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_exercise_id INTEGER NOT NULL,
+                set_number INTEGER NOT NULL,
+                reps INTEGER,
+                duration_seconds INTEGER,
+                weight REAL,
+                weight_unit TEXT CHECK(weight_unit IN ('lbs', 'kg', NULL)),
+                completed_at DATETIME NOT NULL,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_exercise_id) REFERENCES session_exercises (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_exercise_sets_session_exercise ON exercise_sets(session_exercise_id)")
+
+        # Create user_preferences table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_preferences (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                weight_unit TEXT NOT NULL DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),
+                default_rest_seconds INTEGER DEFAULT 60,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_preferences_user ON user_preferences(user_id)")
+
+        # Create workout_templates table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workout_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_templates_user ON workout_templates(user_id)")
+
+        # Create template_exercises table (exercises in a template)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS template_exercises (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_id INTEGER NOT NULL,
+                exercise_id INTEGER NOT NULL,
+                order_index INTEGER NOT NULL,
+                target_sets INTEGER DEFAULT 3,
+                target_value REAL,
+                rest_seconds INTEGER DEFAULT 60,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (template_id) REFERENCES workout_templates (id) ON DELETE CASCADE,
+                FOREIGN KEY (exercise_id) REFERENCES exercises (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_template_exercises_template ON template_exercises(template_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_template_exercises_exercise ON template_exercises(exercise_id)")
+
+        logger.info("Exercise tracking tables created/verified")

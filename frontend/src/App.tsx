@@ -8,10 +8,11 @@ import { Dashboard } from './components/Dashboard';
 import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
 import { LoginScreen } from './components/LoginScreen';
+import { Workout } from './components/Workout';
 import { useAuth } from './contexts/AuthContext';
 import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score } from './types';
 
-type View = 'tracker' | 'dashboard' | 'manage' | 'settings';
+type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'settings';
 
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -187,6 +188,7 @@ function AuthenticatedApp() {
               { id: 'tracker', label: 'Today' },
               { id: 'dashboard', label: 'Dashboard' },
               { id: 'manage', label: 'Activities' },
+              { id: 'workout', label: 'Workout' },
               { id: 'settings', label: 'Settings' },
             ].map((tab) => (
               <button
@@ -238,6 +240,8 @@ function AuthenticatedApp() {
         )}
 
         {view === 'dashboard' && <Dashboard />}
+
+        {view === 'workout' && <Workout />}
 
         {view === 'settings' && <Settings />}
 

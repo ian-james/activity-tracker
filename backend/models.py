@@ -285,3 +285,270 @@ class Session(BaseModel):
     user_id: int
     created_at: datetime
     expires_at: datetime
+
+
+# Exercise Tracking Models
+
+class ExerciseCreate(BaseModel):
+    name: str
+    exercise_type: str  # 'reps', 'time', or 'weight'
+    default_value: Optional[float] = None
+    default_weight_unit: Optional[str] = None  # 'lbs' or 'kg'
+    notes: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+    @field_validator('exercise_type')
+    @classmethod
+    def validate_exercise_type(cls, v: str) -> str:
+        if v not in ['reps', 'time', 'weight']:
+            raise ValueError('Exercise type must be reps, time, or weight')
+        return v
+
+    @field_validator('default_weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+
+class ExerciseUpdate(BaseModel):
+    name: Optional[str] = None
+    exercise_type: Optional[str] = None
+    default_value: Optional[float] = None
+    default_weight_unit: Optional[str] = None
+    notes: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+    @field_validator('exercise_type')
+    @classmethod
+    def validate_exercise_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['reps', 'time', 'weight']:
+            raise ValueError('Exercise type must be reps, time, or weight')
+        return v
+
+    @field_validator('default_weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+
+class Exercise(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    exercise_type: str
+    default_value: Optional[float]
+    default_weight_unit: Optional[str]
+    notes: Optional[str]
+    is_active: bool
+    created_at: datetime
+
+
+class WorkoutSessionCreate(BaseModel):
+    name: Optional[str] = None
+    started_at: datetime
+    notes: Optional[str] = None
+
+
+class WorkoutSessionUpdate(BaseModel):
+    name: Optional[str] = None
+    completed_at: Optional[datetime] = None
+    paused_duration: Optional[int] = None
+    total_duration: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class WorkoutSession(BaseModel):
+    id: int
+    user_id: int
+    name: Optional[str]
+    started_at: datetime
+    completed_at: Optional[datetime]
+    paused_duration: int
+    total_duration: Optional[int]
+    notes: Optional[str]
+    created_at: datetime
+
+
+class SessionExerciseCreate(BaseModel):
+    workout_session_id: int
+    exercise_id: int
+    order_index: int
+    target_sets: int = 1
+    target_value: Optional[float] = None
+    rest_seconds: int = 60
+    notes: Optional[str] = None
+
+
+class SessionExercise(BaseModel):
+    id: int
+    workout_session_id: int
+    exercise_id: int
+    order_index: int
+    target_sets: int
+    target_value: Optional[float]
+    rest_seconds: int
+    notes: Optional[str]
+    created_at: datetime
+
+
+class ExerciseSetCreate(BaseModel):
+    session_exercise_id: int
+    set_number: int
+    reps: Optional[int] = None
+    duration_seconds: Optional[int] = None
+    weight: Optional[float] = None
+    weight_unit: Optional[str] = None
+    completed_at: datetime
+    notes: Optional[str] = None
+
+    @field_validator('weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+
+class ExerciseSet(BaseModel):
+    id: int
+    session_exercise_id: int
+    set_number: int
+    reps: Optional[int]
+    duration_seconds: Optional[int]
+    weight: Optional[float]
+    weight_unit: Optional[str]
+    completed_at: datetime
+    notes: Optional[str]
+    created_at: datetime
+
+
+class UserPreferences(BaseModel):
+    id: int
+    user_id: int
+    weight_unit: str
+    default_rest_seconds: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserPreferencesUpdate(BaseModel):
+    weight_unit: Optional[str] = None
+    default_rest_seconds: Optional[int] = None
+
+    @field_validator('weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+    @field_validator('default_rest_seconds')
+    @classmethod
+    def validate_rest_seconds(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if v < 0:
+            raise ValueError('Rest seconds cannot be negative')
+        if v > 3600:
+            raise ValueError('Rest seconds cannot exceed 3600 (1 hour)')
+        return v
+
+
+# Workout Template Models
+
+class WorkoutTemplateCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+
+class WorkoutTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Name cannot exceed 100 characters')
+        return v
+
+
+class WorkoutTemplate(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    description: Optional[str]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class TemplateExerciseCreate(BaseModel):
+    template_id: int
+    exercise_id: int
+    order_index: int
+    target_sets: int = 3
+    target_value: Optional[float] = None
+    rest_seconds: int = 60
+    notes: Optional[str] = None
+
+
+class TemplateExercise(BaseModel):
+    id: int
+    template_id: int
+    exercise_id: int
+    order_index: int
+    target_sets: int
+    target_value: Optional[float]
+    rest_seconds: int
+    notes: Optional[str]
+    created_at: datetime
