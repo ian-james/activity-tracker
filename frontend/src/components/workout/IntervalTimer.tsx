@@ -161,20 +161,46 @@ export function IntervalTimer({
 
   if (phase === 'complete') {
     return (
-      <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg shadow text-center">
-        <div className="text-6xl mb-4">🎉</div>
-        <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-          Interval Training Complete!
-        </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
-          {rounds} round{rounds > 1 ? 's' : ''} × {sessionExercises.length} exercise{sessionExercises.length > 1 ? 's' : ''}
-        </p>
-        <button
-          onClick={onStop}
-          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
-        >
-          Exit Interval Mode
-        </button>
+      <div className="space-y-4">
+        <div className="bg-green-50 dark:bg-green-900/20 p-8 rounded-lg shadow text-center border-4 border-green-500">
+          <div className="mb-4">
+            <span className="text-3xl font-bold uppercase text-green-600 dark:text-green-400">
+              🎉 WORKOUT COMPLETE!
+            </span>
+          </div>
+
+          <div className="text-7xl font-bold mb-6 text-green-600 dark:text-green-400">
+            ✓
+          </div>
+
+          <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">
+            Great Job!
+          </h3>
+
+          <div className="grid grid-cols-3 gap-4 mb-6 max-w-md mx-auto">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{rounds}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Round{rounds > 1 ? 's' : ''}</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-3 rounded">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionExercises.length}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Exercise{sessionExercises.length > 1 ? 's' : ''}</div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-3 rounded">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {Math.ceil((sessionExercises.length * (workSeconds + restSeconds) * rounds) / 60)}
+              </div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Minutes</div>
+            </div>
+          </div>
+
+          <button
+            onClick={onStop}
+            className="bg-green-500 text-white px-8 py-3 rounded-lg hover:bg-green-600 font-medium text-lg"
+          >
+            Exit Interval Mode
+          </button>
+        </div>
       </div>
     );
   }

@@ -477,8 +477,8 @@ export function ActiveWorkout({ templateIdToStart, onTemplateStarted }: ActiveWo
           restSeconds={intervalRestSeconds}
           rounds={intervalRounds}
           onComplete={() => {
-            setIntervalMode(false);
-            alert('Interval workout complete! Great job!');
+            // Completion screen is handled by IntervalTimer component
+            // User will click "Exit Interval Mode" button to return
           }}
           onStop={() => {
             setIntervalMode(false);
