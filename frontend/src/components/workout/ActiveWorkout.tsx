@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useExercises, useWorkoutSessions, useSessionExercises, useTemplateExercises } from '../../hooks/useWorkouts';
 import { useWorkoutTimer, formatTime } from '../../hooks/useWorkoutTimer';
-import { Exercise } from '../../types';
+import { useActivities, useLogs } from '../../hooks/useApi';
+import { Exercise, EnergyLevel, QualityRating } from '../../types';
 import { SetLogger } from './SetLogger';
 import { RestTimer } from './RestTimer';
 import { IntervalTimer } from './IntervalTimer';
@@ -27,6 +28,11 @@ export function ActiveWorkout({ templateIdToStart, onTemplateStarted }: ActiveWo
   } = useSessionExercises(activeSession?.id || null);
   const { templateExercises, fetchTemplateExercises } = useTemplateExercises(templateIdToStart || null);
 
+  // Activity logging for interval mode
+  const { activities, fetchActivities } = useActivities();
+  const dateStr = new Date().toISOString().split('T')[0];
+  const { createLog } = useLogs(dateStr);
+
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
@@ -45,7 +51,8 @@ export function ActiveWorkout({ templateIdToStart, onTemplateStarted }: ActiveWo
   useEffect(() => {
     fetchExercises();
     fetchActiveSession();
-  }, [fetchExercises, fetchActiveSession]);
+    fetchActivities();
+  }, [fetchExercises, fetchActiveSession, fetchActivities]);
 
   useEffect(() => {
     if (activeSession) {
@@ -164,6 +171,20 @@ export function ActiveWorkout({ templateIdToStart, onTemplateStarted }: ActiveWo
       } catch (error) {
         console.error('Failed to remove exercise:', error);
       }
+    }
+  };
+
+  const handleLogActivity = async (activityId: number, energyLevel: EnergyLevel | null, qualityRating: QualityRating | null) => {
+    try {
+      await createLog({
+        activity_id: activityId,
+        completed_at: new Date().toISOString(),
+        energy_level: energyLevel,
+        quality_rating: qualityRating,
+      });
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+      throw error;
     }
   };
 
@@ -483,6 +504,8 @@ export function ActiveWorkout({ templateIdToStart, onTemplateStarted }: ActiveWo
           onStop={() => {
             setIntervalMode(false);
           }}
+          activities={activities}
+          onLogActivity={handleLogActivity}
         />
       ) : (
         /* Session Exercises with Set Logger */
