@@ -665,18 +665,24 @@ FRONTEND_URL=http://localhost:5173
 
 ---
 
-## Future Enhancement Ideas
+## Future Enhancement Ideas (Lower Priority)
+
+**Note:** High-priority features moved to "Planned Features / Roadmap" section above
 
 - [ ] Multi-device sync for skipped activities
 - [ ] Workout session sharing/social features
 - [ ] Custom exercise video/GIF attachments
 - [ ] Voice commands during interval training
 - [ ] Apple Health / Google Fit integration
-- [ ] Workout music integration
 - [ ] Achievement badges and milestones
 - [ ] Group challenges
 - [ ] Nutrition tracking
-- [ ] Sleep tracking integration
+- [ ] Personal bests / PR detection and celebration
+- [ ] AI-powered workout recommendations
+- [ ] Mood tracking correlation
+- [ ] Body metrics timeline (weight, measurements)
+- [ ] Habit stacking and activity dependencies
+- [ ] Points shop/rewards system
 
 ---
 
@@ -685,6 +691,7 @@ FRONTEND_URL=http://localhost:5173
 **Remote:** github.com:ian-james/activity-tracker.git
 **Branch:** main
 **Latest Commits:**
+- 284e45a: Add comprehensive Context.MD for project documentation
 - e82ae02: Add activity logging form to interval workout completion screen
 - c0aef8b: Replace alert popup with styled completion screen
 - c5f9972: Add interval training mode with countdown
@@ -716,6 +723,199 @@ FRONTEND_URL=http://localhost:5173
 
 ---
 
+## Planned Features / Roadmap
+
+### Priority 1: Near-Term Implementation
+
+#### 3. Pomodoro Timer with Activity Integration
+**Status:** Not started
+**Priority:** High
+
+**Planned Capabilities:**
+- Pomodoro timer (25min work / 5min break cycles)
+- Link pomodoro sessions to activities for automatic logging
+- Track "deep work" time per category
+- Break reminders that suggest stretches/exercises from workout library
+- Statistics: total focus time per day/week
+
+**Implementation Plan:**
+1. Create `PomodoroTimer.tsx` component with start/pause/reset
+2. Add state management for current session and break status
+3. Create pomodoro settings in user preferences (custom durations)
+4. Add activity selector to link session to activity
+5. Auto-log to activities when pomodoro completes
+6. Add "Suggested break activity" from workout exercises
+7. Create Pomodoro tab or integrate into existing tabs
+
+**Database Changes:**
+- Consider adding `pomodoro_sessions` table:
+  - `id`, `user_id`, `activity_id`, `started_at`, `completed_at`, `duration_minutes`, `was_interrupted`
+- Or extend `logs` table with `session_type` field ("activity", "pomodoro")
+
+**Related Components:**
+- Reuse timer logic from `useWorkoutTimer` hook
+- Similar countdown UI to `IntervalTimer` component
+- Integration point in `DailyTracker` for auto-logging
+
+---
+
+#### 5. Recovery & Rest Day Tracking
+**Status:** Not started
+**Priority:** High
+
+**Planned Capabilities:**
+- Mark specific days as "rest days" or "recovery days"
+- Adjust scoring calculation for rest days (don't penalize)
+- Track sleep quality with simple rating (1-5 scale)
+- Correlate rest/sleep with next-day performance
+- Rest day recommendations based on workout intensity
+- Recovery metrics: consecutive workout days, suggested rest frequency
+
+**Implementation Plan:**
+1. Add `rest_day_markers` table or extend daily tracking
+2. Create "Mark as Rest Day" toggle in tracker view
+3. Update score calculation logic to handle rest days
+4. Add sleep quality input (optional daily entry)
+5. Create recovery dashboard showing:
+   - Days since last rest
+   - Sleep quality trends
+   - Energy level correlation with rest
+6. Smart suggestions: "You've worked out 5 days straight, consider rest"
+
+**Database Changes:**
+- Add `rest_days` table:
+  - `id`, `user_id`, `date`, `rest_type` ("full_rest", "active_recovery"), `notes`
+- Add `sleep_logs` table:
+  - `id`, `user_id`, `date`, `quality_rating` (1-5), `hours_slept`, `notes`
+
+**Related Features:**
+- Integrate with scoring system (`scores.py`)
+- Show rest day indicators on calendar heat map
+- Factor into streak calculations (rest days maintain streaks)
+
+---
+
+#### 7. Predictive Streak Maintenance
+**Status:** Not started
+**Priority:** High
+
+**Planned Capabilities:**
+- Real-time forecast: "You need 2 more activities to maintain 80% today"
+- Daily progress bar toward streak requirement
+- Risk alerts: "You're at 65% this week, streak at risk"
+- Smart reminders at optimal times based on completion patterns
+- "Easiest path to streak": suggest lowest-effort activities
+- Weekly streak projection
+
+**Implementation Plan:**
+1. Create `StreakPredictor` utility class for calculations
+2. Add real-time progress indicators in `DailyTracker`
+3. Create alert/notification system (UI banners)
+4. Add "Streak Assistant" panel showing:
+   - Current progress toward today's goal
+   - Remaining points needed
+   - Suggested activities (sorted by historical completion likelihood)
+5. Implement time-based suggestions (learn user patterns)
+6. Add streak projection chart in Dashboard
+
+**Backend Changes:**
+- New API endpoint: `GET /api/analytics/streak-forecast?date={date}`
+  - Returns: current progress, points needed, risk level, suggestions
+- Enhance streak calculation in `analytics.py`
+- Add pattern detection: analyze historical completion times
+
+**Related Components:**
+- Extend `Streaks.tsx` with forecast display
+- Add real-time indicator to `DailyTracker.tsx`
+- Create `StreakForecast.tsx` component for detailed view
+
+---
+
+#### 13. Workout Music Playlists
+**Status:** Not started
+**Priority:** High
+
+**Planned Capabilities:**
+- Link Spotify/YouTube playlists to workout templates
+- Auto-play music during interval training
+- Sync song tempo to work/rest intervals
+- "Workout Radio" mode with curated playlists
+- Save favorite workout songs
+- Integration with Spotify Web Playback SDK
+
+**Implementation Plan:**
+1. Add Spotify authentication flow (OAuth)
+2. Create playlist selector in `WorkoutTemplates.tsx`
+3. Add music controls to `IntervalTimer.tsx`:
+   - Play/pause/skip
+   - Volume control
+   - Auto-play on workout start
+4. Store playlist preferences per template
+5. Optional: BPM matching (match song tempo to interval duration)
+6. Create fallback for users without Spotify (YouTube links)
+
+**Database Changes:**
+- Add to `workout_templates` table:
+  - `spotify_playlist_id` TEXT
+  - `music_autoplay` INTEGER (0/1)
+- Add `workout_songs` table (optional):
+  - `id`, `user_id`, `name`, `artist`, `spotify_uri`, `youtube_url`, `bpm`, `favorite`
+
+**External Dependencies:**
+- Spotify Web API
+- Spotify Web Playback SDK (for in-browser playback)
+- YouTube iframe API (fallback option)
+
+**Related Components:**
+- Add music player UI to `IntervalTimer.tsx`
+- Playlist manager in Settings or Workout tab
+- Music controls overlay during active workout
+
+---
+
+### Priority 2: Future Implementation
+
+#### 24. Weekly Planning Mode
+**Status:** Not started
+**Priority:** Medium (planned for future)
+
+**Planned Capabilities:**
+- Visual calendar view for week planning
+- Drag-and-drop activities to specific days/times
+- Copy previous week's successful schedule
+- Template-based week planning (e.g., "Workout Week", "Recovery Week")
+- Compare planned vs actual completion
+- Schedule optimization suggestions based on patterns
+- Time blocking for activities with estimated durations
+
+**Implementation Plan:**
+1. Create `WeeklyPlanner.tsx` component with calendar grid
+2. Implement drag-and-drop for activity scheduling
+3. Add "planned activities" concept (separate from scheduled days_of_week)
+4. Create weekly templates system
+5. Build comparison view: planned vs actual
+6. Add success rate tracking per weekly template
+7. Smart suggestions: best days/times for each activity
+
+**Database Changes:**
+- Add `planned_activities` table:
+  - `id`, `user_id`, `activity_id`, `planned_date`, `planned_time`, `duration_estimate`, `completed`
+- Add `weekly_templates` table:
+  - `id`, `user_id`, `name`, `template_data` (JSON), `success_rate`
+
+**UI Components:**
+- Full-week calendar view (similar to Google Calendar)
+- Activity library sidebar for dragging
+- Template picker/manager
+- Analytics: planned vs actual compliance rate
+
+**Related Features:**
+- Integrate with existing activity scheduling
+- Connect to pomodoro timer for time estimates
+- Link to streak forecasting for weekly goals
+
+---
+
 ## Contact & Support
 
 For questions or issues:
@@ -727,4 +927,4 @@ For questions or issues:
 ---
 
 *This document is maintained as the single source of truth for project context.*
-*Last updated: January 20, 2026*
+*Last updated: January 21, 2026*
