@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useActivities, useLogs, useScores } from './hooks/useApi';
+import { useExercises } from './hooks/useWorkouts';
 import { ActivityForm } from './components/ActivityForm';
 import { ActivityList } from './components/ActivityList';
 import { DailyTracker } from './components/DailyTracker';
@@ -10,10 +11,11 @@ import { CategoryManager } from './components/CategoryManager';
 import { LoginScreen } from './components/LoginScreen';
 import { Workout } from './components/Workout';
 import { TodoList } from './components/TodoList';
+import { PomodoroTimer } from './components/PomodoroTimer';
 import { useAuth } from './contexts/AuthContext';
 import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score } from './types';
 
-type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'todo' | 'settings';
+type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'pomodoro' | 'todo' | 'settings';
 
 function formatDate(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -49,10 +51,12 @@ function AuthenticatedApp() {
   const { activities, fetchActivities, createActivity, updateActivity, deleteActivity } = useActivities();
   const { logs, fetchLogs, createLog, deleteLog } = useLogs(dateStr);
   const { dailyScore, weeklyScore, monthlyScore, fetchDailyScore, fetchWeeklyScore, fetchMonthlyScore } = useScores();
+  const { exercises, fetchExercises } = useExercises();
 
   useEffect(() => {
     fetchActivities();
-  }, [fetchActivities]);
+    fetchExercises();
+  }, [fetchActivities, fetchExercises]);
 
   useEffect(() => {
     fetchLogs();
@@ -159,6 +163,55 @@ function AuthenticatedApp() {
     setCurrentDate(newDate);
   };
 
+  const handleLogActivity = async (activityId: number, energyLevel: EnergyLevel | null, qualityRating: QualityRating | null) => {
+    try {
+      const now = new Date();
+      const todayStr = formatDate(now);
+
+      // If we're not viewing today, switch to today first
+      const currentDateStr = formatDate(currentDate);
+      if (currentDateStr !== todayStr) {
+        setCurrentDate(now);
+      }
+
+      await createLog({
+        activity_id: activityId,
+        completed_at: todayStr, // Backend expects just the date, not full ISO timestamp
+        energy_level: energyLevel,
+        quality_rating: qualityRating,
+      });
+
+      // Force a refresh of all data for today
+      await Promise.all([
+        fetchLogs(),
+        fetchDailyScore(todayStr),
+        fetchWeeklyScore(todayStr),
+        fetchMonthlyScore(now.getFullYear(), now.getMonth() + 1)
+      ]);
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+      throw error;
+    }
+  };
+
+  const handleCreateActivityFromPomodoro = async (activityData: { name: string; points: number }) => {
+    try {
+      await createActivity(activityData);
+    } catch (error) {
+      console.error('Failed to create activity:', error);
+      throw error;
+    }
+  };
+
+  const handleDeactivateActivity = async (activityId: number) => {
+    try {
+      await deleteActivity(activityId); // DELETE endpoint marks as inactive, doesn't actually delete
+    } catch (error) {
+      console.error('Failed to deactivate activity:', error);
+      throw error;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto p-4">
@@ -190,6 +243,7 @@ function AuthenticatedApp() {
               { id: 'dashboard', label: 'Dashboard' },
               { id: 'manage', label: 'Activities' },
               { id: 'workout', label: 'Workout' },
+              { id: 'pomodoro', label: 'Pomodoro' },
               { id: 'todo', label: 'Todo' },
               { id: 'settings', label: 'Settings' },
             ].map((tab) => (
@@ -244,6 +298,16 @@ function AuthenticatedApp() {
         {view === 'dashboard' && <Dashboard />}
 
         {view === 'workout' && <Workout />}
+
+        {view === 'pomodoro' && (
+          <PomodoroTimer
+            activities={activities}
+            exercises={exercises}
+            onLogActivity={handleLogActivity}
+            onCreateActivity={handleCreateActivityFromPomodoro}
+            onDeactivateActivity={handleDeactivateActivity}
+          />
+        )}
 
         {view === 'todo' && <TodoList />}
 

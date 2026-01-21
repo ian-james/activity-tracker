@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, useRef } from 'react';
 import { DayOfWeek, DAYS_OF_WEEK, Activity } from '../types';
 import { useCategories } from '../hooks/useApi';
 import { useTemplates } from '../contexts/TemplatesContext';
@@ -21,9 +21,24 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   const [categoryId, setCategoryId] = useState<number | null>(initialActivity?.category_id || null);
   const [submitting, setSubmitting] = useState(false);
 
+  const formContainerRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Scroll to form and focus first input when editing
+  useEffect(() => {
+    if (isEditMode && formContainerRef.current && nameInputRef.current) {
+      formContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Small delay to ensure scroll completes before focusing
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      }, 300);
+    }
+  }, [isEditMode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -57,7 +72,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+    <div ref={formContainerRef} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
       <h3 className="font-semibold mb-3 text-gray-800 dark:text-gray-100">
         {isEditMode ? 'Edit Activity' : 'Add New Activity'}
       </h3>
@@ -114,6 +129,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex gap-3">
             <input
+              ref={nameInputRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}

@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Exercise, ExerciseProgressResponse, DailyProgressData } from '../../types';
+import { Exercise, ExerciseProgressResponse, DailyProgressData, WorkoutSession, ExerciseSet } from '../../types';
 
 interface ExerciseProgressProps {
   exercise: Exercise;
   onClose: () => void;
+}
+
+interface WorkoutSessionWithSets {
+  session: WorkoutSession;
+  sets: ExerciseSet[];
 }
 
 const API_BASE = '/api';
@@ -13,9 +18,12 @@ export function ExerciseProgress({ exercise, onClose }: ExerciseProgressProps) {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [metric, setMetric] = useState<'max_weight' | 'max_reps' | 'max_duration' | 'total_sets'>('max_weight');
+  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSessionWithSets[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
   useEffect(() => {
     fetchProgress();
+    fetchRecentWorkouts();
   }, [exercise.id, days]);
 
   const fetchProgress = async () => {
@@ -41,6 +49,60 @@ export function ExerciseProgress({ exercise, onClose }: ExerciseProgressProps) {
       console.error('Failed to fetch progress:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRecentWorkouts = async () => {
+    setLoadingWorkouts(true);
+    try {
+      // Get recent sessions
+      const sessionsRes = await fetch(`${API_BASE}/workouts/sessions?days=${days}`, {
+        credentials: 'include',
+      });
+
+      if (sessionsRes.ok) {
+        const allSessions: WorkoutSession[] = await sessionsRes.json();
+
+        // For each session, get exercises and check if our exercise is in it
+        const workoutsWithSets: WorkoutSessionWithSets[] = [];
+
+        for (const session of allSessions) {
+          if (!session.completed_at) continue; // Only show completed workouts
+
+          // Get session exercises
+          const exercisesRes = await fetch(`${API_BASE}/workouts/sessions/${session.id}/exercises`, {
+            credentials: 'include',
+          });
+
+          if (exercisesRes.ok) {
+            const sessionExercises = await exercisesRes.json();
+            const ourExercise = sessionExercises.find((se: any) => se.exercise_id === exercise.id);
+
+            if (ourExercise) {
+              // Get sets for this session exercise
+              const setsRes = await fetch(`${API_BASE}/workouts/session-exercises/${ourExercise.id}/sets`, {
+                credentials: 'include',
+              });
+
+              if (setsRes.ok) {
+                const sets = await setsRes.json();
+                if (sets.length > 0) {
+                  workoutsWithSets.push({ session, sets });
+                }
+              }
+            }
+          }
+
+          // Limit to 10 most recent workouts
+          if (workoutsWithSets.length >= 10) break;
+        }
+
+        setRecentWorkouts(workoutsWithSets);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent workouts:', error);
+    } finally {
+      setLoadingWorkouts(false);
     }
   };
 
@@ -189,6 +251,69 @@ export function ExerciseProgress({ exercise, onClose }: ExerciseProgressProps) {
           metricLabel={getMetricLabel()}
           getValue={getMetricValue}
         />
+      </div>
+
+      {/* Recent Workouts */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Recent Workout Sessions
+        </h4>
+        {loadingWorkouts ? (
+          <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+            Loading recent workouts...
+          </div>
+        ) : recentWorkouts.length === 0 ? (
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            No recent workout sessions found for this exercise.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentWorkouts.map(({ session, sets }) => (
+              <div key={session.id} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="font-medium text-gray-800 dark:text-gray-100">
+                      {session.name || 'Workout Session'}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {new Date(session.started_at).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    {sets.length} set{sets.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {/* Sets Table */}
+                <div className="space-y-1">
+                  {sets.map((set, idx) => (
+                    <div key={set.id} className="flex items-center justify-between text-sm bg-white dark:bg-gray-800 px-3 py-2 rounded">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Set {set.set_number}
+                      </span>
+                      <span className="text-gray-800 dark:text-gray-200 font-medium">
+                        {exercise.exercise_type === 'weight' && set.weight && (
+                          <>{set.weight} {set.weight_unit} × {set.reps} reps</>
+                        )}
+                        {exercise.exercise_type === 'reps' && set.reps && (
+                          <>{set.reps} reps</>
+                        )}
+                        {exercise.exercise_type === 'time' && set.duration_seconds && (
+                          <>{Math.floor(set.duration_seconds / 60)}:{(set.duration_seconds % 60).toString().padStart(2, '0')}</>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
