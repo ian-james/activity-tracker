@@ -3,14 +3,26 @@ import { useCategories } from '../hooks/useApi';
 import { Category } from '../types';
 
 const PRESET_COLORS = [
-  '#10B981', // Green
+  '#10B981', // Emerald Green
   '#3B82F6', // Blue
-  '#F59E0B', // Yellow
+  '#F59E0B', // Amber
   '#EF4444', // Red
   '#8B5CF6', // Purple
   '#EC4899', // Pink
   '#14B8A6', // Teal
   '#F97316', // Orange
+  '#6366F1', // Indigo
+  '#06B6D4', // Cyan
+  '#84CC16', // Lime
+  '#F43F5E', // Rose
+  '#A855F7', // Violet
+  '#0EA5E9', // Sky Blue
+  '#22C55E', // Green
+  '#D946EF', // Fuchsia
+  '#64748B', // Slate
+  '#78350F', // Brown
+  '#0891B2', // Dark Cyan
+  '#7C3AED', // Deep Purple
 ];
 
 interface CategoryFormData {

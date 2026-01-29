@@ -1,22 +1,42 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useTemplates, ActivityTemplate } from '../contexts/TemplatesContext';
-import { DayOfWeek, DAYS_OF_WEEK } from '../types';
-import { useCategories } from '../hooks/useApi';
+import { DayOfWeek, DAYS_OF_WEEK, CompletionType, ScheduleFrequency } from '../types';
+import { useCategories, useActivities } from '../hooks/useApi';
 
-export function TemplateManager() {
+const POINT_OPTIONS = [-200, -100, -50, -25, -10, -5, 5, 10, 25, 50, 100, 200];
+
+interface TemplateManagerProps {
+  refreshTrigger?: number;
+}
+
+export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
   const { templates, addTemplate, updateTemplate, deleteTemplate } = useTemplates();
   const { categories, fetchCategories } = useCategories();
+  const { createActivity } = useActivities();
   const [showForm, setShowForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ActivityTemplate | null>(null);
   const [name, setName] = useState('');
   const [points, setPoints] = useState(10);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [completionType, setCompletionType] = useState<CompletionType>('checkbox');
+  const [ratingScale, setRatingScale] = useState<number>(5);
+  const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>('weekly');
+  const [biweeklyStartDate, setBiweeklyStartDate] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+  const [creatingFromTemplate, setCreatingFromTemplate] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Refetch categories when refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchCategories();
+    }
+  }, [refreshTrigger, fetchCategories]);
 
   const isEditMode = !!editingTemplate;
 
@@ -25,6 +45,10 @@ export function TemplateManager() {
     setPoints(10);
     setSelectedDays([]);
     setCategoryId(null);
+    setCompletionType('checkbox');
+    setRatingScale(5);
+    setScheduleFrequency('weekly');
+    setBiweeklyStartDate('');
     setEditingTemplate(null);
     setShowForm(false);
   };
@@ -34,6 +58,10 @@ export function TemplateManager() {
     setPoints(template.points);
     setSelectedDays(template.days || []);
     setCategoryId(template.category_id);
+    setCompletionType(template.completion_type);
+    setRatingScale(template.rating_scale || 5);
+    setScheduleFrequency(template.schedule_frequency);
+    setBiweeklyStartDate(template.biweekly_start_date || '');
     setEditingTemplate(template);
     setShowForm(true);
   };
@@ -47,6 +75,10 @@ export function TemplateManager() {
       points,
       days: selectedDays.length > 0 ? selectedDays : null,
       category_id: categoryId,
+      completion_type: completionType,
+      rating_scale: completionType === 'rating' ? ratingScale : null,
+      schedule_frequency: scheduleFrequency,
+      biweekly_start_date: scheduleFrequency === 'biweekly' ? biweeklyStartDate : null,
     };
 
     if (isEditMode && editingTemplate) {
@@ -61,6 +93,29 @@ export function TemplateManager() {
   const handleDelete = (id: string) => {
     if (confirm('Delete this template?')) {
       deleteTemplate(id);
+    }
+  };
+
+  const handleCreateFromTemplate = async (template: ActivityTemplate) => {
+    setCreatingFromTemplate(template.id);
+    try {
+      await createActivity({
+        name: template.name,
+        points: template.points,
+        days_of_week: template.days,
+        category_id: template.category_id,
+        completion_type: template.completion_type,
+        rating_scale: template.rating_scale,
+        schedule_frequency: template.schedule_frequency,
+        biweekly_start_date: template.biweekly_start_date,
+      });
+      setSuccessMessage(`Created "${template.name}" activity!`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Failed to create activity from template:', error);
+      alert('Failed to create activity. Please try again.');
+    } finally {
+      setCreatingFromTemplate(null);
     }
   };
 
@@ -129,6 +184,16 @@ export function TemplateManager() {
         )}
       </div>
 
+      {/* Success message */}
+      {successMessage && (
+        <div className="mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          {successMessage}
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-3">
           <h4 className="font-medium text-gray-800 dark:text-gray-200">
@@ -147,11 +212,11 @@ export function TemplateManager() {
             <select
               value={points}
               onChange={(e) => setPoints(Number(e.target.value))}
-              className="w-24 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              className="w-32 border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
             >
-              {[5, 10, 25, 50, 100, 200].map((p) => (
+              {POINT_OPTIONS.map((p) => (
                 <option key={p} value={p}>
-                  {p} pts
+                  {p > 0 ? '+' : ''}{p} pts
                 </option>
               ))}
             </select>
@@ -176,8 +241,68 @@ export function TemplateManager() {
           </div>
 
           <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Completion Type:
+            </label>
+            <select
+              value={completionType}
+              onChange={(e) => setCompletionType(e.target.value as CompletionType)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+            >
+              <option value="energy_quality">Energy & Quality Levels</option>
+              <option value="rating">Rating Scale</option>
+              <option value="checkbox">Simple Checkbox</option>
+            </select>
+          </div>
+
+          {completionType === 'rating' && (
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Rating Scale:
+              </label>
+              <select
+                value={ratingScale}
+                onChange={(e) => setRatingScale(Number(e.target.value))}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              >
+                <option value={3}>3-point scale (1-3)</option>
+                <option value={5}>5-point scale (1-5)</option>
+                <option value={10}>10-point scale (1-10)</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Schedule Frequency:
+            </label>
+            <select
+              value={scheduleFrequency}
+              onChange={(e) => setScheduleFrequency(e.target.value as ScheduleFrequency)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+            >
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Every 2 Weeks (Biweekly)</option>
+            </select>
+          </div>
+
+          {scheduleFrequency === 'biweekly' && (
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Start Date (first occurrence):
+              </label>
+              <input
+                type="date"
+                value={biweeklyStartDate}
+                onChange={(e) => setBiweeklyStartDate(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+              />
+            </div>
+          )}
+
+          <div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              Schedule (leave empty for every day):
+              Days of Week (leave empty for every day):
             </p>
             <div className="flex gap-1">
               {DAYS_OF_WEEK.map((day) => (
@@ -262,15 +387,34 @@ export function TemplateManager() {
                         <div>
                           <div className="font-medium text-gray-800 dark:text-gray-200">
                             {template.name}
-                            <span className="text-gray-500 dark:text-gray-400 ml-2 text-sm">
-                              +{template.points} pts
+                            <span className={`ml-2 text-sm ${template.points > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {template.points > 0 ? '+' : ''}{template.points} pts
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatDays(template.days)}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 space-x-2">
+                            <span>{formatDays(template.days)}</span>
+                            <span>•</span>
+                            <span>
+                              {template.completion_type === 'checkbox' && '✓ Checkbox'}
+                              {template.completion_type === 'rating' && `⭐ Rating (1-${template.rating_scale})`}
+                              {template.completion_type === 'energy_quality' && '⚡ Energy/Quality'}
+                            </span>
+                            {template.schedule_frequency === 'biweekly' && (
+                              <>
+                                <span>•</span>
+                                <span>📅 Biweekly</span>
+                              </>
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => handleCreateFromTemplate(template)}
+                            disabled={creatingFromTemplate === template.id}
+                            className="bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                          >
+                            {creatingFromTemplate === template.id ? 'Creating...' : 'Use'}
+                          </button>
                           <button
                             onClick={() => handleEdit(template)}
                             className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 text-sm"

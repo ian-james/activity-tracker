@@ -12,6 +12,10 @@ class ActivityCreate(BaseModel):
     points: int = 10
     days_of_week: Optional[List[str]] = None  # None means every day
     category_id: Optional[int] = None
+    completion_type: str = 'checkbox'  # 'checkbox', 'rating', or 'energy_quality'
+    rating_scale: Optional[int] = 5  # Only for 'rating' type: 3, 5, or 10
+    schedule_frequency: str = 'weekly'  # 'weekly' or 'biweekly'
+    biweekly_start_date: Optional[date] = None  # Required for 'biweekly'
 
     @field_validator('name')
     @classmethod
@@ -54,12 +58,39 @@ class ActivityCreate(BaseModel):
 
         return unique_days if unique_days else None
 
+    @field_validator('completion_type')
+    @classmethod
+    def validate_completion_type(cls, v: str) -> str:
+        if v not in ['checkbox', 'rating', 'energy_quality']:
+            raise ValueError('Completion type must be checkbox, rating, or energy_quality')
+        return v
+
+    @field_validator('rating_scale')
+    @classmethod
+    def validate_rating_scale(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if v not in [3, 5, 10]:
+            raise ValueError('Rating scale must be 3, 5, or 10')
+        return v
+
+    @field_validator('schedule_frequency')
+    @classmethod
+    def validate_schedule_frequency(cls, v: str) -> str:
+        if v not in ['weekly', 'biweekly']:
+            raise ValueError('Schedule frequency must be weekly or biweekly')
+        return v
+
 
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     points: Optional[int] = None
     days_of_week: Optional[List[str]] = None
     category_id: Optional[int] = None
+    completion_type: Optional[str] = None
+    rating_scale: Optional[int] = None
+    schedule_frequency: Optional[str] = None
+    biweekly_start_date: Optional[date] = None
 
     @field_validator('name')
     @classmethod
@@ -106,6 +137,33 @@ class ActivityUpdate(BaseModel):
 
         return unique_days if unique_days else None
 
+    @field_validator('completion_type')
+    @classmethod
+    def validate_completion_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['checkbox', 'rating', 'energy_quality']:
+            raise ValueError('Completion type must be checkbox, rating, or energy_quality')
+        return v
+
+    @field_validator('rating_scale')
+    @classmethod
+    def validate_rating_scale(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if v not in [3, 5, 10]:
+            raise ValueError('Rating scale must be 3, 5, or 10')
+        return v
+
+    @field_validator('schedule_frequency')
+    @classmethod
+    def validate_schedule_frequency(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['weekly', 'biweekly']:
+            raise ValueError('Schedule frequency must be weekly or biweekly')
+        return v
+
 
 class Activity(BaseModel):
     id: int
@@ -114,6 +172,10 @@ class Activity(BaseModel):
     is_active: bool
     days_of_week: Optional[List[str]]
     category_id: Optional[int]
+    completion_type: str
+    rating_scale: Optional[int]
+    schedule_frequency: str
+    biweekly_start_date: Optional[date]
     created_at: datetime
 
 
@@ -122,6 +184,7 @@ class LogCreate(BaseModel):
     completed_at: date
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
+    rating_value: Optional[int] = None
 
     @field_validator('energy_level')
     @classmethod
@@ -141,6 +204,15 @@ class LogCreate(BaseModel):
             raise ValueError('Quality rating must be low, medium, or high')
         return v
 
+    @field_validator('rating_value')
+    @classmethod
+    def validate_rating_value(cls, v: Optional[int]) -> Optional[int]:
+        if v is None:
+            return v
+        if v < 1 or v > 10:
+            raise ValueError('Rating value must be between 1 and 10')
+        return v
+
 
 class Log(BaseModel):
     id: int
@@ -148,6 +220,7 @@ class Log(BaseModel):
     completed_at: date
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
+    rating_value: Optional[int] = None
     created_at: datetime
 
 
@@ -559,6 +632,7 @@ class TemplateExercise(BaseModel):
 class TodoCreate(BaseModel):
     text: str
     order_index: int = 0
+    category: str = 'personal'  # 'personal' or 'professional'
 
     @field_validator('text')
     @classmethod
@@ -570,11 +644,19 @@ class TodoCreate(BaseModel):
             raise ValueError('Text cannot exceed 500 characters')
         return v
 
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v: str) -> str:
+        if v not in ('personal', 'professional'):
+            raise ValueError('Category must be either "personal" or "professional"')
+        return v
+
 
 class TodoUpdate(BaseModel):
     text: Optional[str] = None
     is_completed: Optional[bool] = None
     order_index: Optional[int] = None
+    category: Optional[str] = None
 
     @field_validator('text')
     @classmethod
@@ -588,6 +670,15 @@ class TodoUpdate(BaseModel):
             raise ValueError('Text cannot exceed 500 characters')
         return v
 
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ('personal', 'professional'):
+            raise ValueError('Category must be either "personal" or "professional"')
+        return v
+
 
 class Todo(BaseModel):
     id: int
@@ -596,5 +687,44 @@ class Todo(BaseModel):
     is_completed: bool
     completed_at: Optional[datetime]
     order_index: int
+    category: str
     created_at: datetime
     updated_at: datetime
+
+
+# Special Day Models
+
+class SpecialDayCreate(BaseModel):
+    date: date
+    day_type: str  # 'rest', 'recovery', or 'vacation'
+    notes: Optional[str] = None
+
+    @field_validator('day_type')
+    @classmethod
+    def validate_day_type(cls, v: str) -> str:
+        if v not in ['rest', 'recovery', 'vacation']:
+            raise ValueError('Day type must be rest, recovery, or vacation')
+        return v
+
+
+class SpecialDayUpdate(BaseModel):
+    day_type: Optional[str] = None
+    notes: Optional[str] = None
+
+    @field_validator('day_type')
+    @classmethod
+    def validate_day_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['rest', 'recovery', 'vacation']:
+            raise ValueError('Day type must be rest, recovery, or vacation')
+        return v
+
+
+class SpecialDay(BaseModel):
+    id: int
+    user_id: int
+    date: date
+    day_type: str
+    notes: Optional[str]
+    created_at: datetime

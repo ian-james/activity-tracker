@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Activity, Log, DayOfWeek, EnergyLevel, QualityRating } from '../types';
 import { useCategories } from '../hooks/useApi';
+import { ActivityStatsModal } from './ActivityStatsModal';
 
 const WEEKDAY_MAP: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -21,25 +22,42 @@ interface Props {
   logs: Log[];
   date: string;
   currentDate: Date;
-  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null) => Promise<void>;
+  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null) => Promise<void>;
 }
 
-function isScheduledForDay(daysOfWeek: DayOfWeek[] | null, date: Date): boolean {
-  if (daysOfWeek === null) return true; // No schedule means every day
+function isScheduledForDay(
+  activity: Activity,
+  date: Date
+): boolean {
+  // Check biweekly scheduling first
+  if (activity.schedule_frequency === 'biweekly') {
+    if (!activity.biweekly_start_date) return false;
+    const startDate = new Date(activity.biweekly_start_date);
+    const daysDiff = Math.floor((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 0) return false; // Before start date
+    const weeksDiff = Math.floor(daysDiff / 7);
+    // Only show on even weeks (0, 2, 4, ...)
+    if (weeksDiff % 2 !== 0) return false;
+  }
+
+  // Check day of week
+  if (activity.days_of_week === null) return true; // No schedule means every day
   // JavaScript getDay(): 0 = Sunday, 1 = Monday, etc.
   // Our map: 0 = Monday, so we need to convert
   const jsDay = date.getDay();
   const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Convert Sunday=0 to index 6
   const dayName = WEEKDAY_MAP[dayIndex];
-  return daysOfWeek.includes(dayName);
+  return activity.days_of_week.includes(dayName);
 }
 
 type ViewMode = 'category' | 'schedule';
+type SortOption = 'name-asc' | 'name-desc' | 'points-high' | 'points-low' | 'category' | 'completion';
 
 export function DailyTracker({ activities, logs, currentDate, onToggle }: Props) {
   const { categories, fetchCategories } = useCategories();
   const [selectingEnergyFor, setSelectingEnergyFor] = useState<number | null>(null);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyLevel | null>(null);
+  const [selectingRatingFor, setSelectingRatingFor] = useState<number | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('category');
   const [scheduleOrder, setScheduleOrder] = useState<number[]>([]);
@@ -47,9 +65,73 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const [skippedActivities, setSkippedActivities] = useState<Set<number>>(new Set());
   const [showSkipped, setShowSkipped] = useState(false);
 
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState<number | 'all'>('all');
+  const [filterCompletion, setFilterCompletion] = useState<'all' | 'completed' | 'incomplete'>('all');
+  const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('name-asc');
+
+  // Stats modal
+  const [statsActivityId, setStatsActivityId] = useState<number | null>(null);
+  const [statsActivityName, setStatsActivityName] = useState<string>('');
+
   const completedIds = new Set(logs.map((l) => l.activity_id));
-  const scheduledActivities = activities.filter((a) => isScheduledForDay(a.days_of_week, currentDate));
-  const activeActivities = scheduledActivities.filter((a) => !skippedActivities.has(a.id));
+  const scheduledActivities = activities.filter((a) => isScheduledForDay(a, currentDate));
+
+  // Apply filters and search
+  const filteredActivities = scheduledActivities.filter((activity) => {
+    // Skip filter
+    if (skippedActivities.has(activity.id)) return false;
+
+    // Search filter
+    if (searchQuery && !activity.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+
+    // Category filter
+    if (filterCategory !== 'all' && activity.category_id !== filterCategory) {
+      return false;
+    }
+
+    // Completion filter
+    const isCompleted = completedIds.has(activity.id);
+    if (filterCompletion === 'completed' && !isCompleted) return false;
+    if (filterCompletion === 'incomplete' && isCompleted) return false;
+
+    // Show incomplete only toggle
+    if (showIncompleteOnly && isCompleted) return false;
+
+    return true;
+  });
+
+  // Apply sorting
+  const sortedActivities = [...filteredActivities].sort((a, b) => {
+    switch (sortBy) {
+      case 'name-asc':
+        return a.name.localeCompare(b.name);
+      case 'name-desc':
+        return b.name.localeCompare(a.name);
+      case 'points-high':
+        return b.points - a.points;
+      case 'points-low':
+        return a.points - b.points;
+      case 'category': {
+        const catA = categories.find(c => c.id === a.category_id)?.name || 'Uncategorized';
+        const catB = categories.find(c => c.id === b.category_id)?.name || 'Uncategorized';
+        return catA.localeCompare(catB);
+      }
+      case 'completion': {
+        const completeA = completedIds.has(a.id) ? 0 : 1;
+        const completeB = completedIds.has(b.id) ? 0 : 1;
+        return completeB - completeA; // Incomplete first
+      }
+      default:
+        return 0;
+    }
+  });
+
+  const activeActivities = sortedActivities;
   const skippedActivityList = scheduledActivities.filter((a) => skippedActivities.has(a.id));
 
   useEffect(() => {
@@ -108,14 +190,23 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     });
   };
 
-  const handleActivityClick = (activityId: number, isCompleted: boolean, logId?: number) => {
+  const handleActivityClick = (activity: Activity, isCompleted: boolean, logId?: number) => {
     if (isCompleted) {
       // If already completed, uncomplete it
-      onToggle(activityId, false, logId);
+      onToggle(activity.id, false, logId);
     } else {
-      // If not completed, show energy level selector
-      setSelectingEnergyFor(activityId);
-      setSelectedEnergy(null);
+      // Branch based on completion type
+      if (activity.completion_type === 'checkbox') {
+        // Simple checkbox - complete immediately
+        onToggle(activity.id, true, undefined, null, null, null);
+      } else if (activity.completion_type === 'rating') {
+        // Show rating selector
+        setSelectingRatingFor(activity.id);
+      } else {
+        // energy_quality - show energy level selector
+        setSelectingEnergyFor(activity.id);
+        setSelectedEnergy(null);
+      }
     }
   };
 
@@ -126,9 +217,15 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   const handleQualitySelect = async (activityId: number, qualityRating: QualityRating | null) => {
     // Complete the activity with both energy and quality
-    await onToggle(activityId, true, undefined, selectedEnergy, qualityRating);
+    await onToggle(activityId, true, undefined, selectedEnergy, qualityRating, null);
     setSelectingEnergyFor(null);
     setSelectedEnergy(null);
+  };
+
+  const handleRatingSelect = async (activityId: number, ratingValue: number) => {
+    // Complete the activity with rating value
+    await onToggle(activityId, true, undefined, null, null, ratingValue);
+    setSelectingRatingFor(null);
   };
 
   const toggleCategoryCollapse = (categoryKey: string) => {
@@ -173,6 +270,8 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     return Array.from(grouped.entries());
   };
 
+  // Get activities in their custom order (for "My Schedule" view)
+  // This doesn't update state, just returns ordered list
   const getOrderedActivities = () => {
     // Get all activity IDs that are active (not skipped) for today
     const activeIds = new Set(activeActivities.map(a => a.id));
@@ -180,15 +279,10 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     // Filter stored order to only include active activities for today
     const validOrder = scheduleOrder.filter(id => activeIds.has(id));
 
-    // Add any new activities that aren't in the order yet
+    // Add any new activities that aren't in the order yet (at the end)
     const orderedIds = new Set(validOrder);
     const newActivities = activeActivities.filter(a => !orderedIds.has(a.id));
     const finalOrder = [...validOrder, ...newActivities.map(a => a.id)];
-
-    // If order changed, update it
-    if (finalOrder.length !== validOrder.length) {
-      updateScheduleOrder(finalOrder);
-    }
 
     // Return activities in the specified order
     return finalOrder.map(id => activeActivities.find(a => a.id === id)).filter(Boolean) as Activity[];
@@ -260,6 +354,8 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     const isCompleted = completedIds.has(activity.id);
     const log = logs.find((l) => l.activity_id === activity.id);
     const showingEnergySelector = selectingEnergyFor === activity.id;
+    const showingRatingSelector = selectingRatingFor === activity.id;
+    const showingSelector = showingEnergySelector || showingRatingSelector;
     const category = categories.find(c => c.id === activity.category_id);
 
     return (
@@ -269,11 +365,11 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
           onDragStart={() => showDragHandle && handleDragStart(activity.id)}
           onDragOver={(e) => showDragHandle && handleDragOver(e, activity.id)}
           onDragEnd={handleDragEnd}
-          onClick={() => !showingEnergySelector && handleActivityClick(activity.id, isCompleted, log?.id)}
+          onClick={() => !showingSelector && handleActivityClick(activity, isCompleted, log?.id)}
           className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
             isCompleted
               ? 'bg-green-50 dark:bg-green-900/20'
-              : showingEnergySelector
+              : showingSelector
               ? 'bg-blue-50 dark:bg-blue-900/20'
               : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
           } ${draggedItem === activity.id ? 'opacity-50' : ''} ${showDragHandle ? 'cursor-move' : ''}`}
@@ -315,6 +411,11 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                 <span className={`font-medium ${isCompleted ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'}`}>
                   {activity.name}
                 </span>
+                {isCompleted && log?.rating_value && (
+                  <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded" title={`Rating: ${log.rating_value}/${activity.rating_scale || 5}`}>
+                    {log.rating_value}/{activity.rating_scale || 5}
+                  </span>
+                )}
                 {isCompleted && log?.energy_level && (
                   <span className="text-lg" title={`Energy: ${log.energy_level}`}>
                     {ENERGY_ICONS[log.energy_level]}
@@ -344,6 +445,19 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setStatsActivityId(activity.id);
+                setStatsActivityName(activity.name);
+              }}
+              className="p-1 text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+              title="View statistics"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 toggleSkipActivity(activity.id);
               }}
               className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
@@ -355,6 +469,32 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
             </button>
           </div>
         </div>
+
+        {/* Rating Selector */}
+        {showingRatingSelector && (
+          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border-t border-purple-200 dark:border-purple-800 space-y-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Rate your performance (1-{activity.rating_scale || 5}):
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {Array.from({ length: activity.rating_scale || 5 }, (_, i) => i + 1).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => handleRatingSelect(activity.id, value)}
+                  className="flex-1 min-w-[60px] py-3 px-3 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-900/50 text-lg font-bold"
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setSelectingRatingFor(null)}
+              className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
 
         {/* Energy and Quality Selector */}
         {showingEnergySelector && (
@@ -430,6 +570,94 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   return (
     <div className="space-y-3">
+      {/* Search and Filters */}
+      <div className="space-y-3">
+        {/* Search Bar */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search activities..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <svg
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Filters Row */}
+        <div className="grid grid-cols-2 gap-2">
+          {/* Category Filter */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+
+          {/* Sort Options */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="name-asc">Name (A-Z)</option>
+            <option value="name-desc">Name (Z-A)</option>
+            <option value="points-high">Points (High to Low)</option>
+            <option value="points-low">Points (Low to High)</option>
+            <option value="category">Category</option>
+            <option value="completion">Incomplete First</option>
+          </select>
+        </div>
+
+        {/* Quick Toggles */}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showIncompleteOnly}
+              onChange={(e) => setShowIncompleteOnly(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show incomplete only</span>
+          </label>
+
+          {(searchQuery || filterCategory !== 'all' || filterCompletion !== 'all' || showIncompleteOnly) && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilterCategory('all');
+                setFilterCompletion('all');
+                setShowIncompleteOnly(false);
+              }}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* View Toggle */}
       <div className="flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
         <button
@@ -541,6 +769,18 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
             </div>
           )}
         </div>
+      )}
+
+      {/* Stats Modal */}
+      {statsActivityId !== null && (
+        <ActivityStatsModal
+          activityId={statsActivityId}
+          activityName={statsActivityName}
+          onClose={() => {
+            setStatsActivityId(null);
+            setStatsActivityName('');
+          }}
+        />
       )}
     </div>
   );

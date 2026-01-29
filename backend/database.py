@@ -77,10 +77,14 @@ def init_db():
         cursor.execute("SELECT COUNT(*) as count FROM categories")
         if cursor.fetchone()['count'] == 0:
             default_categories = [
-                ('Health & Fitness', '#10B981'),
-                ('Personal Development', '#3B82F6'),
-                ('Productivity', '#F59E0B'),
-                ('Wellness', '#8B5CF6'),
+                ('Health & Fitness', '#10B981'),  # Emerald Green
+                ('Personal Development', '#3B82F6'),  # Blue
+                ('Productivity', '#F59E0B'),  # Amber
+                ('Wellness', '#8B5CF6'),  # Purple
+                ('Work', '#6366F1'),  # Indigo
+                ('Finance', '#22C55E'),  # Green
+                ('Social', '#EC4899'),  # Pink
+                ('Hobbies', '#14B8A6'),  # Teal
             ]
             cursor.executemany(
                 "INSERT INTO categories (name, color) VALUES (?, ?)",
@@ -298,5 +302,13 @@ def init_db():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_user ON todos(user_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_completed ON todos(is_completed)")
+
+        # Migration: add category column to todos if it doesn't exist
+        cursor.execute("PRAGMA table_info(todos)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'category' not in columns:
+            cursor.execute("ALTER TABLE todos ADD COLUMN category TEXT NOT NULL DEFAULT 'personal' CHECK(category IN ('personal', 'professional'))")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_category ON todos(category)")
+            logger.info("Added category column to todos table")
 
         logger.info("Exercise tracking tables created/verified")

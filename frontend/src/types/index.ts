@@ -1,4 +1,7 @@
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+export type CompletionType = 'checkbox' | 'rating' | 'energy_quality';
+export type ScheduleFrequency = 'weekly' | 'biweekly';
+export type SpecialDayType = 'rest' | 'recovery' | 'vacation';
 
 export const DAYS_OF_WEEK: { value: DayOfWeek; label: string; short: string }[] = [
   { value: 'mon', label: 'Monday', short: 'M' },
@@ -17,6 +20,10 @@ export interface Activity {
   is_active: boolean;
   days_of_week: DayOfWeek[] | null;
   category_id: number | null;
+  completion_type: CompletionType;
+  rating_scale: number | null;
+  schedule_frequency: ScheduleFrequency;
+  biweekly_start_date: string | null;
   created_at: string;
 }
 
@@ -25,6 +32,10 @@ export interface ActivityCreate {
   points: number;
   days_of_week?: DayOfWeek[] | null;
   category_id?: number | null;
+  completion_type?: CompletionType;
+  rating_scale?: number | null;
+  schedule_frequency?: ScheduleFrequency;
+  biweekly_start_date?: string | null;
 }
 
 export type EnergyLevel = 'low' | 'medium' | 'high';
@@ -36,6 +47,7 @@ export interface Log {
   completed_at: string;
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
+  rating_value?: number | null;
   created_at: string;
 }
 
@@ -44,6 +56,7 @@ export interface LogCreate {
   completed_at: string;
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
+  rating_value?: number | null;
 }
 
 export interface Score {
@@ -303,6 +316,8 @@ export interface ExerciseProgressResponse {
 
 // Todo Types
 
+export type TodoCategory = 'personal' | 'professional';
+
 export interface Todo {
   id: number;
   user_id: number;
@@ -310,6 +325,7 @@ export interface Todo {
   is_completed: boolean;
   completed_at: string | null;
   order_index: number;
+  category: TodoCategory;
   created_at: string;
   updated_at: string;
 }
@@ -317,10 +333,34 @@ export interface Todo {
 export interface TodoCreate {
   text: string;
   order_index?: number;
+  category?: TodoCategory;
 }
 
 export interface TodoUpdate {
   text?: string;
   is_completed?: boolean;
   order_index?: number;
+  category?: TodoCategory;
+}
+
+// Special Day Types
+
+export interface SpecialDay {
+  id: number;
+  user_id: number;
+  date: string;
+  day_type: SpecialDayType;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SpecialDayCreate {
+  date: string;
+  day_type: SpecialDayType;
+  notes?: string | null;
+}
+
+export interface SpecialDayUpdate {
+  day_type?: SpecialDayType;
+  notes?: string | null;
 }

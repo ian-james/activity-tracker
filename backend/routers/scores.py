@@ -11,8 +11,31 @@ router = APIRouter(prefix="/api/scores", tags=["scores"])
 WEEKDAY_MAP = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
 
-def is_scheduled_for_day(days_of_week: str | None, check_date: date) -> bool:
-    """Check if an activity is scheduled for a specific date."""
+def is_scheduled_for_day(
+    days_of_week: str | None,
+    check_date: date,
+    schedule_frequency: str = 'weekly',
+    biweekly_start_date: date | None = None
+) -> bool:
+    """Check if an activity is scheduled for a specific date.
+
+    Handles both weekly and biweekly scheduling.
+    For biweekly, the activity appears every other week starting from biweekly_start_date.
+    """
+    # Check biweekly scheduling first
+    if schedule_frequency == 'biweekly':
+        if biweekly_start_date is None:
+            return False
+        # Calculate weeks difference from start date
+        days_diff = (check_date - biweekly_start_date).days
+        if days_diff < 0:
+            return False  # Before start date
+        weeks_diff = days_diff // 7
+        # Only show on even weeks (0, 2, 4, ...)
+        if weeks_diff % 2 != 0:
+            return False
+
+    # Check day of week
     if days_of_week is None:
         return True  # No schedule means every day
     scheduled_days = days_of_week.split(',')
@@ -42,6 +65,14 @@ def calculate_score(start_date: date, end_date: date, period: str, user_id: int)
                 total_activities=0,
                 percentage=0.0
             )
+
+        # Get special days for this date range
+        cursor.execute(
+            "SELECT date FROM special_days WHERE user_id = ? AND date >= ? AND date <= ?",
+            (user_id, start_date, end_date)
+        )
+        special_days_rows = cursor.fetchall()
+        special_days = {date.fromisoformat(row['date']) for row in special_days_rows}
 
         # Get the first log date for this user to avoid counting expectations before they started
         cursor.execute(
@@ -75,18 +106,28 @@ def calculate_score(start_date: date, end_date: date, period: str, user_id: int)
                 percentage=0.0
             )
 
-        # Calculate max possible points considering schedules
+        # Calculate max possible points considering schedules and special days
         # Only positive points contribute to max_possible_points
         max_possible_points = 0
         total_scheduled_activities = 0
         current = actual_start
         while current <= actual_end:
-            for activity in activities:
-                if is_scheduled_for_day(activity["days_of_week"], current):
-                    # Only add positive points to max possible
-                    if activity["points"] > 0:
-                        max_possible_points += activity["points"]
-                    total_scheduled_activities += 1
+            # Skip special days (rest/recovery/vacation)
+            if current not in special_days:
+                for activity in activities:
+                    # Pass new scheduling parameters
+                    schedule_freq = activity["schedule_frequency"] if activity["schedule_frequency"] else "weekly"
+                    biweekly_date = date.fromisoformat(activity["biweekly_start_date"]) if activity["biweekly_start_date"] else None
+                    if is_scheduled_for_day(
+                        activity["days_of_week"],
+                        current,
+                        schedule_freq,
+                        biweekly_date
+                    ):
+                        # Only add positive points to max possible
+                        if activity["points"] > 0:
+                            max_possible_points += activity["points"]
+                        total_scheduled_activities += 1
             current += timedelta(days=1)
 
         # Get completed activities for user
@@ -98,9 +139,25 @@ def calculate_score(start_date: date, end_date: date, period: str, user_id: int)
         """, (start_date.isoformat(), end_date.isoformat(), user_id))
         logs = cursor.fetchall()
 
-        total_points = sum(log["points"] for log in logs)
+        # Debug output
+        print(f"\n=== SCORE CALC DEBUG ===")
+        print(f"Date range: {start_date} to {end_date}, user {user_id}")
+        print(f"Query params: start={start_date.isoformat()}, end={end_date.isoformat()}")
+        print(f"Found {len(logs)} logs")
+        print(f"Max possible points: {max_possible_points}, Total scheduled: {total_scheduled_activities}")
+        for log in logs[:5]:  # Show first 5
+            print(f"  Log: activity_id={log['activity_id']}, date={log['completed_at']}, points={log['points']}")
+
+        # Only count positive points toward the score display
+        # Negative points are for tracking bad habits but don't reduce the visible score
+        total_points = sum(log["points"] for log in logs if log["points"] > 0)
         completed_count = len(logs)
-        percentage = (completed_count / total_scheduled_activities * 100) if total_scheduled_activities > 0 else 0.0
+
+        # Calculate percentage based on points earned vs max possible
+        percentage = (total_points / max_possible_points * 100) if max_possible_points > 0 else 0.0
+
+        print(f"Result: total_points={total_points}, completed_count={completed_count}, percentage={percentage}")
+        print(f"===================\n")
 
         return ScoreResponse(
             period=period,
@@ -161,14 +218,15 @@ def calculate_max_points_and_activities(activities: list, start_date: date, end_
     """Calculate max possible points and total scheduled activities for a period.
 
     Helper function to avoid code duplication.
-    Optionally takes user_id to adjust for first log date.
+    Optionally takes user_id to adjust for first log date and get special days.
     """
     # Adjust end_date to not include future
     today = date.today()
     actual_end = min(end_date, today)
     actual_start = start_date
 
-    # If user_id provided, adjust start date to first log
+    # Get special days if user_id provided
+    special_days = set()
     if user_id:
         with get_db() as conn:
             cursor = conn.cursor()
@@ -181,6 +239,14 @@ def calculate_max_points_and_activities(activities: list, start_date: date, end_
                 first_log_date = date.fromisoformat(first_log_row['first_log'])
                 actual_start = max(start_date, first_log_date)
 
+            # Fetch special days
+            cursor.execute(
+                "SELECT date FROM special_days WHERE user_id = ? AND date >= ? AND date <= ?",
+                (user_id, start_date, end_date)
+            )
+            special_days_rows = cursor.fetchall()
+            special_days = {date.fromisoformat(row['date']) for row in special_days_rows}
+
     # If range is invalid, return zeros
     if actual_start > actual_end:
         return 0, 0
@@ -190,12 +256,22 @@ def calculate_max_points_and_activities(activities: list, start_date: date, end_
     current = actual_start
 
     while current <= actual_end:
-        for activity in activities:
-            if is_scheduled_for_day(activity["days_of_week"], current):
-                # Only add positive points to max possible
-                if activity["points"] > 0:
-                    max_possible_points += activity["points"]
-                total_scheduled_activities += 1
+        # Skip special days
+        if current not in special_days:
+            for activity in activities:
+                # Pass new scheduling parameters
+                schedule_freq = activity["schedule_frequency"] if activity["schedule_frequency"] else "weekly"
+                biweekly_date = date.fromisoformat(activity["biweekly_start_date"]) if activity["biweekly_start_date"] else None
+                if is_scheduled_for_day(
+                    activity["days_of_week"],
+                    current,
+                    schedule_freq,
+                    biweekly_date
+                ):
+                    # Only add positive points to max possible
+                    if activity["points"] > 0:
+                        max_possible_points += activity["points"]
+                    total_scheduled_activities += 1
         current += timedelta(days=1)
 
     return max_possible_points, total_scheduled_activities
@@ -236,6 +312,8 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
                 a.id as activity_id,
                 a.points,
                 a.days_of_week,
+                a.schedule_frequency,
+                a.biweekly_start_date,
                 al.completed_at
             FROM categories c
             LEFT JOIN activities a ON a.category_id = c.id AND a.is_active = 1 AND a.user_id = ?
@@ -253,6 +331,8 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
                 a.id as activity_id,
                 a.points,
                 a.days_of_week,
+                a.schedule_frequency,
+                a.biweekly_start_date,
                 al.completed_at
             FROM activities a
             LEFT JOIN activity_logs al ON al.activity_id = a.id
@@ -281,7 +361,9 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
                 if row['activity_id'] not in category_data[cat_id]['activities']:
                     category_data[cat_id]['activities'][row['activity_id']] = {
                         'points': row['points'],
-                        'days_of_week': row['days_of_week']
+                        'days_of_week': row['days_of_week'],
+                        'schedule_frequency': row['schedule_frequency'],
+                        'biweekly_start_date': row['biweekly_start_date']
                     }
 
                 if row['completed_at']:
@@ -300,7 +382,9 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
             if row['activity_id'] not in uncategorized_data['activities']:
                 uncategorized_data['activities'][row['activity_id']] = {
                     'points': row['points'],
-                    'days_of_week': row['days_of_week']
+                    'days_of_week': row['days_of_week'],
+                    'schedule_frequency': row['schedule_frequency'],
+                    'biweekly_start_date': row['biweekly_start_date']
                 }
 
             if row['completed_at']:
@@ -318,7 +402,12 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
 
             # Convert activities dict to list for calculation function
             activities_list = [
-                {'points': v['points'], 'days_of_week': v['days_of_week']}
+                {
+                    'points': v['points'],
+                    'days_of_week': v['days_of_week'],
+                    'schedule_frequency': v['schedule_frequency'],
+                    'biweekly_start_date': v['biweekly_start_date']
+                }
                 for v in data['activities'].values()
             ]
 
@@ -326,9 +415,10 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
                 activities_list, start_date, end_date, current_user.id
             )
 
-            total_points = sum(log['points'] for log in data['logs'])
+            # Only count positive points toward the score display
+            total_points = sum(log['points'] for log in data['logs'] if log['points'] > 0)
             completed_count = len(data['logs'])
-            percentage = (completed_count / total_scheduled_activities * 100) if total_scheduled_activities > 0 else 0.0
+            percentage = (total_points / max_possible_points * 100) if max_possible_points > 0 else 0.0
 
             summaries.append(CategorySummary(
                 category_id=cat_id,
@@ -344,7 +434,12 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
         # Add uncategorized summary if there are uncategorized activities
         if uncategorized_data['activities']:
             activities_list = [
-                {'points': v['points'], 'days_of_week': v['days_of_week']}
+                {
+                    'points': v['points'],
+                    'days_of_week': v['days_of_week'],
+                    'schedule_frequency': v['schedule_frequency'],
+                    'biweekly_start_date': v['biweekly_start_date']
+                }
                 for v in uncategorized_data['activities'].values()
             ]
 
@@ -352,9 +447,10 @@ def get_category_summary(days: int = Query(default=7, ge=1, le=90), current_user
                 activities_list, start_date, end_date, current_user.id
             )
 
-            total_points = sum(log['points'] for log in uncategorized_data['logs'])
+            # Only count positive points toward the score display
+            total_points = sum(log['points'] for log in uncategorized_data['logs'] if log['points'] > 0)
             completed_count = len(uncategorized_data['logs'])
-            percentage = (completed_count / total_scheduled_activities * 100) if total_scheduled_activities > 0 else 0.0
+            percentage = (total_points / max_possible_points * 100) if max_possible_points > 0 else 0.0
 
             summaries.append(CategorySummary(
                 category_id=None,

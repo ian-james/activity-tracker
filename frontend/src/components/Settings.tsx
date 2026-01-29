@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useMockData } from '../contexts/MockDataContext';
-import { TemplateManager } from './TemplateManager';
 
 export function Settings() {
   const { theme, toggleTheme } = useTheme();
@@ -9,6 +8,9 @@ export function Settings() {
   const [exportStatus, setExportStatus] = useState<string>('');
   const [importStatus, setImportStatus] = useState<string>('');
   const [importing, setImporting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetStatus, setResetStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async () => {
@@ -89,6 +91,36 @@ export function Settings() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleResetAllScores = async () => {
+    try {
+      setResetting(true);
+      setResetStatus('Resetting...');
+
+      const response = await fetch('/api/logs/reset/all', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Reset failed');
+      }
+
+      const result = await response.json();
+      setResetStatus(`✓ Deleted ${result.count} logs. All scores reset!`);
+      setTimeout(() => {
+        setResetStatus('');
+        setShowResetConfirm(false);
+        window.location.reload(); // Reload to show cleared data
+      }, 2000);
+    } catch (error) {
+      console.error('Reset error:', error);
+      setResetStatus(`✗ Reset failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setTimeout(() => setResetStatus(''), 5000);
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -232,8 +264,68 @@ export function Settings() {
         </div>
       </div>
 
-      {/* Template Manager */}
-      <TemplateManager />
+      {/* Reset All Scores Card */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-2 border-red-200 dark:border-red-800">
+        <h3 className="font-medium text-red-700 dark:text-red-400 mb-4">
+          Reset All Scores
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Delete all activity logs and reset all scores. Your activities and categories will not be affected.
+        </p>
+
+        {!showResetConfirm ? (
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            disabled={mockDataEnabled}
+            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+          >
+            Reset All Scores
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                ⚠️ Are you sure?
+              </p>
+              <p className="text-xs text-red-700 dark:text-red-300">
+                This will permanently delete all your activity logs and cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleResetAllScores}
+                disabled={resetting}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                {resetting ? 'Resetting...' : 'Yes, Delete All Logs'}
+              </button>
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                disabled={resetting}
+                className="flex-1 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-700 disabled:opacity-50 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+            {resetStatus && (
+              <p className={`text-sm ${resetStatus.startsWith('✓') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                {resetStatus}
+              </p>
+            )}
+          </div>
+        )}
+
+        {mockDataEnabled && (
+          <p className="mt-3 text-xs text-amber-600 dark:text-amber-400">
+            Reset disabled while using demo data
+          </p>
+        )}
+
+        <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded text-xs text-amber-800 dark:text-amber-200">
+          <strong>Testing Phase:</strong> Use this to clear all previous activity logs while keeping your activities and categories intact.
+        </div>
+      </div>
+
     </div>
   );
 }

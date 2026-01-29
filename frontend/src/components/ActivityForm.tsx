@@ -1,10 +1,19 @@
 import { useState, useEffect, FormEvent, useRef } from 'react';
-import { DayOfWeek, DAYS_OF_WEEK, Activity } from '../types';
+import { DayOfWeek, DAYS_OF_WEEK, Activity, CompletionType, ScheduleFrequency } from '../types';
 import { useCategories } from '../hooks/useApi';
 import { useTemplates } from '../contexts/TemplatesContext';
 
 interface Props {
-  onSubmit: (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => Promise<void>;
+  onSubmit: (
+    name: string,
+    points: number,
+    daysOfWeek: DayOfWeek[] | null,
+    categoryId: number | null,
+    completionType: CompletionType,
+    ratingScale: number | null,
+    scheduleFrequency: ScheduleFrequency,
+    biweeklyStartDate: string | null
+  ) => Promise<void>;
   onCancel: () => void;
   initialActivity?: Activity;
 }
@@ -19,6 +28,10 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   const [points, setPoints] = useState(initialActivity?.points || 10);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>(initialActivity?.days_of_week || []);
   const [categoryId, setCategoryId] = useState<number | null>(initialActivity?.category_id || null);
+  const [completionType, setCompletionType] = useState<CompletionType>(initialActivity?.completion_type || 'checkbox');
+  const [ratingScale, setRatingScale] = useState<number>(initialActivity?.rating_scale || 5);
+  const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>(initialActivity?.schedule_frequency || 'weekly');
+  const [biweeklyStartDate, setBiweeklyStartDate] = useState<string>(initialActivity?.biweekly_start_date || '');
   const [submitting, setSubmitting] = useState(false);
 
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -43,23 +56,62 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    // Validation for biweekly
+    if (scheduleFrequency === 'biweekly' && !biweeklyStartDate) {
+      alert('Please select a start date for biweekly scheduling');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const days = selectedDays.length > 0 ? selectedDays : null;
-      await onSubmit(name.trim(), points, days, categoryId);
+      await onSubmit(
+        name.trim(),
+        points,
+        days,
+        categoryId,
+        completionType,
+        completionType === 'rating' ? ratingScale : null,
+        scheduleFrequency,
+        scheduleFrequency === 'biweekly' ? biweeklyStartDate : null
+      );
+      // Reset form
       setName('');
       setPoints(10);
       setSelectedDays([]);
       setCategoryId(null);
+      setCompletionType('energy_quality');
+      setRatingScale(5);
+      setScheduleFrequency('weekly');
+      setBiweeklyStartDate('');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleTemplateClick = async (template: { name: string; points: number; days: DayOfWeek[] | null; category_id: number | null }) => {
+  const handleTemplateClick = async (template: {
+    name: string;
+    points: number;
+    days: DayOfWeek[] | null;
+    category_id: number | null;
+    completion_type: CompletionType;
+    rating_scale: number | null;
+    schedule_frequency: ScheduleFrequency;
+    biweekly_start_date: string | null;
+  }) => {
     setSubmitting(true);
     try {
-      await onSubmit(template.name, template.points, template.days, template.category_id);
+      await onSubmit(
+        template.name,
+        template.points,
+        template.days,
+        template.category_id,
+        template.completion_type,
+        template.rating_scale,
+        template.schedule_frequency,
+        template.biweekly_start_date
+      );
     } finally {
       setSubmitting(false);
     }
@@ -171,8 +223,76 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
           </div>
 
           <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Completion Type:
+            </label>
+            <select
+              value={completionType}
+              onChange={(e) => setCompletionType(e.target.value as CompletionType)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              disabled={submitting}
+            >
+              <option value="energy_quality">Energy & Quality Levels</option>
+              <option value="rating">Rating Scale</option>
+              <option value="checkbox">Simple Checkbox</option>
+            </select>
+          </div>
+
+          {completionType === 'rating' && (
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Rating Scale:
+              </label>
+              <select
+                value={ratingScale}
+                onChange={(e) => setRatingScale(Number(e.target.value))}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                disabled={submitting}
+              >
+                <option value={3}>3-point scale (1-3)</option>
+                <option value={5}>5-point scale (1-5)</option>
+                <option value={10}>10-point scale (1-10)</option>
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Schedule Frequency:
+            </label>
+            <select
+              value={scheduleFrequency}
+              onChange={(e) => setScheduleFrequency(e.target.value as ScheduleFrequency)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              disabled={submitting}
+            >
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Every 2 Weeks (Biweekly)</option>
+            </select>
+          </div>
+
+          {scheduleFrequency === 'biweekly' && (
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Start Date (first occurrence):
+              </label>
+              <input
+                type="date"
+                value={biweeklyStartDate}
+                onChange={(e) => setBiweeklyStartDate(e.target.value)}
+                className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                disabled={submitting}
+                required={scheduleFrequency === 'biweekly'}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Activity will appear on this day and every 2 weeks after
+              </p>
+            </div>
+          )}
+
+          <div>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              Schedule (leave empty for every day):
+              Days of Week (leave empty for every day):
             </p>
             <div className="flex gap-1">
               {DAYS_OF_WEEK.map((day) => (

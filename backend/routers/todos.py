@@ -28,9 +28,9 @@ def create_todo(todo: TodoCreate, current_user: User = Depends(get_current_user)
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            """INSERT INTO todos (user_id, text, order_index)
-            VALUES (?, ?, ?)""",
-            (current_user.id, todo.text, todo.order_index)
+            """INSERT INTO todos (user_id, text, order_index, category)
+            VALUES (?, ?, ?, ?)""",
+            (current_user.id, todo.text, todo.order_index, todo.category)
         )
         todo_id = cursor.lastrowid
         cursor.execute("SELECT * FROM todos WHERE id = ?", (todo_id,))
@@ -75,6 +75,10 @@ def update_todo(
         if todo.order_index is not None:
             updates.append("order_index = ?")
             values.append(todo.order_index)
+
+        if todo.category is not None:
+            updates.append("category = ?")
+            values.append(todo.category)
 
         if updates:
             updates.append("updated_at = CURRENT_TIMESTAMP")

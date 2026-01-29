@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary } from '../types';
+import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary, SpecialDay, SpecialDayCreate } from '../types';
 import { useMockData as useMockDataContext } from '../contexts/MockDataContext';
 import {
   generateMockActivities,
@@ -369,4 +369,51 @@ export function useCategorySummary() {
   }, [useMockData]);
 
   return { categorySummaries, loading, fetchCategorySummary };
+}
+
+export function useSpecialDays(startDate: string, endDate: string) {
+  const { useMockData } = useMockDataContext();
+  const [specialDays, setSpecialDays] = useState<SpecialDay[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSpecialDays = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        // Mock mode: return empty array
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setSpecialDays([]);
+      } else {
+        const data = await fetchApi<SpecialDay[]>(`/special-days?start_date=${startDate}&end_date=${endDate}`);
+        setSpecialDays(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate, useMockData]);
+
+  const createSpecialDay = useCallback(async (specialDay: SpecialDayCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Create special day ignored', specialDay);
+      return;
+    }
+    await fetchApi('/special-days', {
+      method: 'POST',
+      body: JSON.stringify(specialDay),
+    });
+    await fetchSpecialDays();
+  }, [useMockData, fetchSpecialDays]);
+
+  const deleteSpecialDay = useCallback(async (date: string) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete special day ignored', date);
+      return;
+    }
+    await fetchApi(`/special-days/${date}`, {
+      method: 'DELETE',
+    });
+    await fetchSpecialDays();
+  }, [useMockData, fetchSpecialDays]);
+
+  return { specialDays, loading, fetchSpecialDays, createSpecialDay, deleteSpecialDay };
 }

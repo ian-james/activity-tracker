@@ -12,13 +12,18 @@ import { LoginScreen } from './components/LoginScreen';
 import { Workout } from './components/Workout';
 import { TodoList } from './components/TodoList';
 import { PomodoroTimer } from './components/PomodoroTimer';
+import { ActivitiesPage } from './components/ActivitiesPage';
 import { useAuth } from './contexts/AuthContext';
-import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score } from './types';
+import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score, CompletionType, ScheduleFrequency } from './types';
 
 type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'pomodoro' | 'todo' | 'settings';
 
 function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  // Use local date, not UTC, to avoid timezone shifting
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDisplayDate(date: Date): string {
@@ -30,13 +35,24 @@ function formatDisplayDate(date: Date): string {
   });
 }
 
-function isScheduledForDay(daysOfWeek: DayOfWeek[] | null, date: Date): boolean {
-  if (daysOfWeek === null) return true;
+function isScheduledForDay(activity: Activity, date: Date): boolean {
+  // Check biweekly scheduling first
+  if (activity.schedule_frequency === 'biweekly') {
+    if (!activity.biweekly_start_date) return false;
+    const startDate = new Date(activity.biweekly_start_date);
+    const daysDiff = Math.floor((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 0) return false;
+    const weeksDiff = Math.floor(daysDiff / 7);
+    if (weeksDiff % 2 !== 0) return false;
+  }
+
+  // Check day of week
+  if (activity.days_of_week === null) return true;
   const WEEKDAY_MAP: DayOfWeek[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
   const jsDay = date.getDay();
   const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
   const dayName = WEEKDAY_MAP[dayIndex];
-  return daysOfWeek.includes(dayName);
+  return activity.days_of_week.includes(dayName);
 }
 
 function AuthenticatedApp() {
@@ -69,6 +85,9 @@ function AuthenticatedApp() {
   const adjustedDailyScore = useMemo(() => {
     if (!dailyScore) return null;
 
+    console.log('=== ADJUSTED SCORE CALC ===');
+    console.log('Original dailyScore:', dailyScore);
+
     // Get skipped activities from localStorage
     const stored = localStorage.getItem(`skipped-activities-${dateStr}`);
     let skippedIds: number[] = [];
@@ -80,11 +99,14 @@ function AuthenticatedApp() {
       }
     }
 
-    if (skippedIds.length === 0) return dailyScore;
+    if (skippedIds.length === 0) {
+      console.log('No skipped activities, returning original score');
+      return dailyScore;
+    }
 
     // Find skipped activities that are scheduled for today
     const skippedActivities = activities.filter(
-      a => skippedIds.includes(a.id) && isScheduledForDay(a.days_of_week, currentDate)
+      a => skippedIds.includes(a.id) && isScheduledForDay(a, currentDate)
     );
 
     // Calculate total points for skipped activities (only positive points affect max)
@@ -105,12 +127,15 @@ function AuthenticatedApp() {
       percentage: adjustedPercentage,
     };
 
+    console.log('Adjusted score:', adjusted);
+    console.log('======================');
+
     return adjusted;
   }, [dailyScore, activities, dateStr, currentDate]);
 
-  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null) => {
+  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null) => {
     if (complete) {
-      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel, quality_rating: qualityRating });
+      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel, quality_rating: qualityRating, rating_value: ratingValue });
     } else if (logId) {
       await deleteLog(logId);
     }
@@ -121,15 +146,44 @@ function AuthenticatedApp() {
     ]);
   };
 
-  const handleSubmitActivity = async (name: string, points: number, daysOfWeek: DayOfWeek[] | null, categoryId: number | null) => {
+  const handleSubmitActivity = async (
+    name: string,
+    points: number,
+    daysOfWeek: DayOfWeek[] | null,
+    categoryId: number | null,
+    completionType: CompletionType,
+    ratingScale: number | null,
+    scheduleFrequency: ScheduleFrequency,
+    biweeklyStartDate: string | null
+  ) => {
     if (editingActivity) {
-      await updateActivity(editingActivity.id, { name, points, days_of_week: daysOfWeek, category_id: categoryId });
+      await updateActivity(editingActivity.id, {
+        name,
+        points,
+        days_of_week: daysOfWeek,
+        category_id: categoryId,
+        completion_type: completionType,
+        rating_scale: ratingScale,
+        schedule_frequency: scheduleFrequency,
+        biweekly_start_date: biweeklyStartDate
+      });
       setEditingActivity(null);
     } else {
-      await createActivity({ name, points, days_of_week: daysOfWeek, category_id: categoryId });
+      await createActivity({
+        name,
+        points,
+        days_of_week: daysOfWeek,
+        category_id: categoryId,
+        completion_type: completionType,
+        rating_scale: ratingScale,
+        schedule_frequency: scheduleFrequency,
+        biweekly_start_date: biweeklyStartDate
+      });
       setShowAddForm(false);
     }
+    // Ensure activities are refreshed along with logs and scores
     await Promise.all([
+      fetchActivities(),
       fetchLogs(),
       fetchDailyScore(dateStr),
       fetchWeeklyScore(dateStr),
@@ -145,6 +199,7 @@ function AuthenticatedApp() {
   const handleDeleteActivity = async (id: number) => {
     await deleteActivity(id);
     await Promise.all([
+      fetchActivities(),
       fetchLogs(),
       fetchDailyScore(dateStr),
       fetchWeeklyScore(dateStr),
@@ -263,36 +318,16 @@ function AuthenticatedApp() {
         </header>
 
         {view === 'manage' && (
-          <div className="space-y-8">
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Activities</h2>
-                {!showAddForm && !editingActivity && (
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  >
-                    Add Activity
-                  </button>
-                )}
-              </div>
-              {showAddForm && (
-                <ActivityForm onSubmit={handleSubmitActivity} onCancel={handleCancelForm} />
-              )}
-              {editingActivity && (
-                <ActivityForm
-                  onSubmit={handleSubmitActivity}
-                  onCancel={handleCancelForm}
-                  initialActivity={editingActivity}
-                />
-              )}
-              <ActivityList activities={activities} onEdit={handleEditActivity} onDelete={handleDeleteActivity} />
-            </div>
-
-            <div className="border-t border-gray-300 dark:border-gray-700 pt-8">
-              <CategoryManager />
-            </div>
-          </div>
+          <ActivitiesPage
+            activities={activities}
+            showAddForm={showAddForm}
+            editingActivity={editingActivity}
+            onSubmitActivity={handleSubmitActivity}
+            onCancelForm={handleCancelForm}
+            onEditActivity={handleEditActivity}
+            onDeleteActivity={handleDeleteActivity}
+            onShowAddForm={() => setShowAddForm(true)}
+          />
         )}
 
         {view === 'dashboard' && <Dashboard />}
