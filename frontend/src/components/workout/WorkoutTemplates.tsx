@@ -44,11 +44,11 @@ export function WorkoutTemplates({ onStartFromTemplate }: WorkoutTemplatesProps)
     }
   };
 
-  const handleEdit = (template: WorkoutTemplate) => {
-    setEditingTemplate(template);
-    setShowForm(false);
-    setSelectedTemplate(null);
-  };
+  // const handleEdit = (template: WorkoutTemplate) => {
+  //   setEditingTemplate(template);
+  //   setShowForm(false);
+  //   setSelectedTemplate(null);
+  // };
 
   const handleDelete = async (id: number) => {
     if (confirm('Are you sure you want to delete this workout template?')) {

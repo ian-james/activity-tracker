@@ -48,6 +48,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: ['mon', 'wed', 'fri'],
       category_id: 1, // Health & Fitness
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -57,6 +61,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: null,
       category_id: 2, // Personal Development
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -66,6 +74,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: null,
       category_id: 4, // Wellness
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -75,6 +87,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: ['tue', 'thu', 'sat'],
       category_id: 1, // Health & Fitness
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -84,6 +100,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: null,
       category_id: 4, // Wellness
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -93,6 +113,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: null,
       category_id: 2, // Personal Development
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
     {
@@ -102,6 +126,10 @@ export function generateMockActivities(): Activity[] {
       is_active: true,
       days_of_week: ['sun'],
       category_id: null, // Uncategorized
+      completion_type: 'checkbox',
+      rating_scale: null,
+      schedule_frequency: 'weekly',
+      biweekly_start_date: null,
       created_at: '2024-01-01T00:00:00Z',
     },
   ];

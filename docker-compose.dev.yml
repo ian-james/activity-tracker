@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: activity-tracker-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - FRONTEND_URL=http://localhost:5173
+      - ENVIRONMENT=development
+      - DATABASE_PATH=/app/data/activity_tracker.db
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: activity-tracker-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db-data:
+    driver: local

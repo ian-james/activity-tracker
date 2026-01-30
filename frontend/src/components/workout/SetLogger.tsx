@@ -100,7 +100,7 @@ export function SetLogger({ sessionExercise, exercise }: SetLoggerProps) {
       {/* Completed Sets */}
       {sets.length > 0 && (
         <div className="space-y-1">
-          {sets.map((set, index) => (
+          {sets.map((set) => (
             <div
               key={set.id}
               className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded"

@@ -274,15 +274,15 @@ function AuthenticatedApp() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Activity Tracker</h1>
             <div className="flex items-center gap-3">
-              {user.profile_picture && (
+              {user?.profile_picture && (
                 <img
                   src={user.profile_picture}
-                  alt={user.name || user.email}
+                  alt={user.name || user.email || ''}
                   className="w-8 h-8 rounded-full"
                 />
               )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {user.name || user.email}
+                {user?.name || user?.email}
               </span>
               <button
                 onClick={logout}

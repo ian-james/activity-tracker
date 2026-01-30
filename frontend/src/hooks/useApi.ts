@@ -12,10 +12,10 @@ import {
 
 const API_BASE = '/api';
 
-interface ApiError {
-  detail: string;
-  status: number;
-}
+// interface ApiError {
+//   detail: string;
+//   status: number;
+// }
 
 class ApiException extends Error {
   constructor(public status: number, public detail: string) {
