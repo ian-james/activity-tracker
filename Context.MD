@@ -14,7 +14,7 @@ A full-stack web application for tracking daily activities, workouts, and todos 
 ### Backend
 - **Framework:** FastAPI (Python)
 - **Database:** SQLite with direct connection management
-- **Authentication:** Google OAuth 2.0 with HTTP-only session cookies
+- **Authentication:** Email/password with bcrypt hashing and HTTP-only session cookies
 - **API Style:** RESTful JSON APIs
 - **CORS:** Configured for localhost:5173, localhost:5174
 
@@ -43,9 +43,10 @@ activity-tracker/
 │   ├── database.py             # Database initialization & schema
 │   ├── models.py               # Pydantic models for validation
 │   ├── auth/
-│   │   ├── google_auth.py      # Google OAuth implementation
+│   │   ├── session.py          # Session management
 │   │   └── middleware.py       # Authentication middleware
 │   └── routers/
+│       ├── auth.py             # Login/signup/logout endpoints
 │       ├── activities.py       # Activity CRUD
 │       ├── logs.py             # Activity logging
 │       ├── scores.py           # Score calculations
@@ -70,14 +71,16 @@ activity-tracker/
 ```
 
 ### Authentication Flow
-1. User clicks "Sign in with Google"
-2. Backend redirects to Google OAuth consent screen
-3. Google redirects back with authorization code
-4. Backend exchanges code for user info
-5. Backend creates/updates user in database
-6. Backend sets HTTP-only session cookie
-7. All subsequent API calls include cookie automatically
-8. 401 responses redirect to login screen
+1. User enters email and password in login/signup form
+2. Frontend sends credentials to `/api/auth/login` or `/api/auth/signup`
+3. Backend validates credentials and checks email uniqueness (signup)
+4. Backend hashes password with bcrypt (signup) or verifies hash (login)
+5. Backend creates user in database (signup) or updates last_login_at (login)
+6. Backend creates session record with 30-day expiry
+7. Backend sets HTTP-only session cookie
+8. All subsequent API calls include cookie automatically
+9. Middleware validates session on protected routes
+10. 401 responses redirect to login screen
 
 ---
 
@@ -87,10 +90,20 @@ activity-tracker/
 
 #### users
 - `id` INTEGER PRIMARY KEY
-- `email` TEXT UNIQUE
+- `email` TEXT UNIQUE NOT NULL
+- `password_hash` TEXT (bcrypt hash)
 - `name` TEXT
 - `profile_picture` TEXT
+- `google_id` TEXT UNIQUE (legacy, nullable)
 - `created_at` DATETIME
+- `last_login_at` DATETIME
+
+#### sessions
+- `id` INTEGER PRIMARY KEY
+- `session_id` TEXT UNIQUE NOT NULL
+- `user_id` INTEGER → users(id)
+- `created_at` DATETIME
+- `expires_at` DATETIME (30 days from creation)
 
 #### activities
 - `id` INTEGER PRIMARY KEY
@@ -195,6 +208,37 @@ activity-tracker/
 ---
 
 ## Features
+
+### 0. Authentication & User Management
+**Location:** Login screen, all protected routes
+
+**Capabilities:**
+- User signup with email, password, and optional name
+- User login with email and password
+- Password validation (6-100 characters)
+- Session management with 30-day expiry
+- Automatic session validation on protected routes
+- Secure logout with session cleanup
+- First-user data migration (assigns existing data to first signup)
+
+**Components:**
+- `LoginScreen.tsx` - Login/signup form with toggle
+- `AuthContext.tsx` - Authentication state management
+- `App.tsx` - Route protection and auth checking
+
+**APIs:**
+- `POST /api/auth/signup` - Create new user account
+- `POST /api/auth/login` - Authenticate user
+- `GET /api/auth/me` - Get current user info
+- `POST /api/auth/logout` - End session
+
+**Security:**
+- Bcrypt password hashing with salt
+- HTTP-only session cookies
+- SameSite="lax" policy
+- Secure flag in production (HTTPS)
+- Generic error messages (prevents email enumeration)
+- Constant-time password comparison
 
 ### 1. Daily Activity Tracking
 **Location:** Today tab (tracker view)
@@ -430,6 +474,15 @@ activity-tracker/
 
 ## Key Custom Hooks
 
+### useAuth()
+Manages authentication state and operations (from AuthContext)
+- `user` - Current authenticated user or null
+- `loading` - Loading state during auth checks
+- `signup(data)` - Create new account
+- `login(data)` - Authenticate user
+- `logout()` - End session
+- `checkAuth()` - Verify current session
+
 ### useActivities()
 Manages activity CRUD operations
 - `activities` - Array of Activity objects
@@ -482,6 +535,38 @@ Manages todo list
 ---
 
 ## Important Type Definitions
+
+### Authentication Types
+```typescript
+interface User {
+  id: number;
+  email: string;
+  name: string | null;
+  profile_picture: string | null;
+  created_at: string;
+  last_login_at: string;
+}
+
+interface SignupData {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+interface LoginData {
+  email: string;
+  password: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signup: (data: SignupData) => Promise<void>;
+  login: (data: LoginData) => Promise<void>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+}
+```
 
 ### Activity Types
 ```typescript
@@ -582,36 +667,44 @@ python -c "from database import init_db; init_db()"
 
 ### Backend (.env in backend/)
 ```
-GOOGLE_CLIENT_ID=your_client_id
-GOOGLE_CLIENT_SECRET=your_client_secret
-SECRET_KEY=random_secret_key_for_sessions
 FRONTEND_URL=http://localhost:5173
+ENVIRONMENT=development  # Set to "production" for secure cookies over HTTPS
 ```
+
+**Note:** Session secrets are now generated using `secrets.token_urlsafe(32)` at runtime, so no `SECRET_KEY` environment variable is needed.
 
 ---
 
 ## Recent Major Changes
 
 ### January 2026
-1. **Interval Training Mode** (Commits: c5f9972, c0aef8b, e82ae02)
+1. **Authentication Migration**
+   - Migrated from Google OAuth to email/password authentication
+   - Implemented bcrypt password hashing
+   - Added session management with 30-day expiry
+   - Created signup/login forms with dark mode support
+   - Added first-user data migration for existing activities
+   - Security features: HTTP-only cookies, SameSite policy, generic error messages
+
+2. **Interval Training Mode** (Commits: c5f9972, c0aef8b, e82ae02)
    - Complete interval timer with countdown
    - Configurable work/rest/rounds
    - 5-second "Get Ready" countdown
    - Styled completion screen
    - Activity logging integration
 
-2. **Todo List Feature** (Commit: d829842)
+3. **Todo List Feature** (Commit: d829842)
    - Drag-and-drop reordering
    - Dual clear functionality (in-progress + completed)
    - Inline editing
    - Today-filtered completion view
 
-3. **Workout Templates** (Earlier)
+4. **Workout Templates** (Earlier)
    - Pre-build workouts
    - Save and reuse exercise combinations
    - Quick-start from template
 
-4. **Exercise Progress Tracking** (Earlier)
+5. **Exercise Progress Tracking** (Earlier)
    - SVG-based graphs
    - Historical metrics
    - Multiple metric types (max weight, reps, duration)
@@ -927,4 +1020,4 @@ For questions or issues:
 ---
 
 *This document is maintained as the single source of truth for project context.*
-*Last updated: January 21, 2026*
+*Last updated: January 30, 2026*
