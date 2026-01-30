@@ -103,6 +103,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
     rating_scale: number | null;
     schedule_frequency: ScheduleFrequency;
     biweekly_start_date: string | null;
+    notes: string | null;
   }) => {
     setSubmitting(true);
     try {
@@ -115,7 +116,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
         template.rating_scale,
         template.schedule_frequency,
         template.biweekly_start_date,
-        null // notes
+        template.notes
       );
     } finally {
       setSubmitting(false);

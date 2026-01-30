@@ -23,6 +23,7 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
   const [ratingScale, setRatingScale] = useState<number>(5);
   const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>('weekly');
   const [biweeklyStartDate, setBiweeklyStartDate] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [creatingFromTemplate, setCreatingFromTemplate] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -49,6 +50,7 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
     setRatingScale(5);
     setScheduleFrequency('weekly');
     setBiweeklyStartDate('');
+    setNotes('');
     setEditingTemplate(null);
     setShowForm(false);
   };
@@ -62,6 +64,7 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
     setRatingScale(template.rating_scale || 5);
     setScheduleFrequency(template.schedule_frequency);
     setBiweeklyStartDate(template.biweekly_start_date || '');
+    setNotes(template.notes || '');
     setEditingTemplate(template);
     setShowForm(true);
   };
@@ -79,6 +82,7 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
       rating_scale: completionType === 'rating' ? ratingScale : null,
       schedule_frequency: scheduleFrequency,
       biweekly_start_date: scheduleFrequency === 'biweekly' ? biweeklyStartDate : null,
+      notes: notes.trim() || null,
     };
 
     if (isEditMode && editingTemplate) {
@@ -108,6 +112,7 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
         rating_scale: template.rating_scale,
         schedule_frequency: template.schedule_frequency,
         biweekly_start_date: template.biweekly_start_date,
+        notes: template.notes,
       });
       setSuccessMessage(`Created "${template.name}" activity!`);
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -238,6 +243,19 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Notes (optional):
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes or instructions for this template..."
+              rows={2}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-y"
+            />
           </div>
 
           <div>
@@ -406,6 +424,11 @@ export function TemplateManager({ refreshTrigger }: TemplateManagerProps) {
                               </>
                             )}
                           </div>
+                          {template.notes && (
+                            <div className="text-xs text-gray-600 dark:text-gray-400 italic mt-1">
+                              {template.notes}
+                            </div>
+                          )}
                         </div>
                         <div className="flex gap-2">
                           <button
