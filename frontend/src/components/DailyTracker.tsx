@@ -22,7 +22,7 @@ interface Props {
   logs: Log[];
   date: string;
   currentDate: Date;
-  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null) => Promise<void>;
+  onToggle: (activityId: number, isCompleted: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null, notes?: string | null) => Promise<void>;
 }
 
 function isScheduledForDay(
@@ -58,6 +58,8 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const [selectingEnergyFor, setSelectingEnergyFor] = useState<number | null>(null);
   const [selectedEnergy, setSelectedEnergy] = useState<EnergyLevel | null>(null);
   const [selectingRatingFor, setSelectingRatingFor] = useState<number | null>(null);
+  const [notesFor, setNotesFor] = useState<number | null>(null);
+  const [logNotes, setLogNotes] = useState<string>('');
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('category');
   const [scheduleOrder, setScheduleOrder] = useState<number[]>([]);
@@ -195,10 +197,14 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
       // If already completed, uncomplete it
       onToggle(activity.id, false, logId);
     } else {
+      // Initialize notes with activity template notes
+      setLogNotes(activity.notes || '');
+      setNotesFor(activity.id);
       // Branch based on completion type
       if (activity.completion_type === 'checkbox') {
-        // Simple checkbox - complete immediately
-        onToggle(activity.id, true, undefined, null, null, null);
+        // Simple checkbox - show notes input
+        setSelectingEnergyFor(null);
+        setSelectingRatingFor(null);
       } else if (activity.completion_type === 'rating') {
         // Show rating selector
         setSelectingRatingFor(activity.id);
@@ -217,15 +223,34 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   const handleQualitySelect = async (activityId: number, qualityRating: QualityRating | null) => {
     // Complete the activity with both energy and quality
-    await onToggle(activityId, true, undefined, selectedEnergy, qualityRating, null);
+    await onToggle(activityId, true, undefined, selectedEnergy, qualityRating, null, logNotes || null);
     setSelectingEnergyFor(null);
     setSelectedEnergy(null);
+    setNotesFor(null);
+    setLogNotes('');
   };
 
   const handleRatingSelect = async (activityId: number, ratingValue: number) => {
     // Complete the activity with rating value
-    await onToggle(activityId, true, undefined, null, null, ratingValue);
+    await onToggle(activityId, true, undefined, null, null, ratingValue, logNotes || null);
     setSelectingRatingFor(null);
+    setNotesFor(null);
+    setLogNotes('');
+  };
+
+  const handleSimpleComplete = async (activityId: number) => {
+    // Complete checkbox-type activity with notes
+    await onToggle(activityId, true, undefined, null, null, null, logNotes || null);
+    setNotesFor(null);
+    setLogNotes('');
+  };
+
+  const handleCancelNotes = () => {
+    setNotesFor(null);
+    setLogNotes('');
+    setSelectingEnergyFor(null);
+    setSelectingRatingFor(null);
+    setSelectedEnergy(null);
   };
 
   const toggleCategoryCollapse = (categoryKey: string) => {
@@ -427,11 +452,18 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                   </span>
                 )}
               </div>
-              {activity.days_of_week && (
-                <span className="text-xs text-gray-400 dark:text-gray-500">
-                  [{activity.days_of_week.map(d => d.charAt(0).toUpperCase()).join('')}]
-                </span>
-              )}
+              <div>
+                {activity.days_of_week && (
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    [{activity.days_of_week.map(d => d.charAt(0).toUpperCase()).join('')}]
+                  </span>
+                )}
+                {isCompleted && log?.notes && (
+                  <div className="text-xs text-gray-600 dark:text-gray-400 italic mt-1">
+                    {log.notes}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -487,8 +519,23 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                 </button>
               ))}
             </div>
+            {notesFor === activity.id && (
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  Notes (optional):
+                </label>
+                <textarea
+                  value={logNotes}
+                  onChange={(e) => setLogNotes(e.target.value)}
+                  placeholder={activity.notes || "Add notes for this activity..."}
+                  rows={2}
+                  className="w-full border border-purple-200 dark:border-purple-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
             <button
-              onClick={() => setSelectingRatingFor(null)}
+              onClick={handleCancelNotes}
               className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
             >
               Cancel
@@ -523,11 +570,26 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                     ⚡⚡ High
                   </button>
                 </div>
+                {notesFor === activity.id && (
+                  <div className="mt-2">
+                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Notes (optional):
+                    </label>
+                    <textarea
+                      value={logNotes}
+                      onChange={(e) => setLogNotes(e.target.value)}
+                      placeholder={activity.notes || "Add notes for this activity..."}
+                      rows={2}
+                      className="w-full border border-blue-200 dark:border-blue-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                )}
                 <button
-                  onClick={() => handleEnergySelect(activity.id, null)}
+                  onClick={handleCancelNotes}
                   className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                 >
-                  Skip
+                  Cancel
                 </button>
               </div>
             ) : (
@@ -554,14 +616,62 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                     ⭐⭐⭐ Excellent
                   </button>
                 </div>
+                {notesFor === activity.id && (
+                  <div className="mt-2">
+                    <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Notes (optional):
+                    </label>
+                    <textarea
+                      value={logNotes}
+                      onChange={(e) => setLogNotes(e.target.value)}
+                      placeholder={activity.notes || "Add notes for this activity..."}
+                      rows={2}
+                      className="w-full border border-blue-200 dark:border-blue-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                )}
                 <button
-                  onClick={() => handleQualitySelect(activity.id, null)}
+                  onClick={handleCancelNotes}
                   className="w-full mt-2 py-1 px-3 text-gray-600 dark:text-gray-400 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                 >
-                  Skip
+                  Cancel
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Simple Checkbox Selector (with notes only) */}
+        {notesFor === activity.id && !showingEnergySelector && !showingRatingSelector && (
+          <div className="p-3 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800 space-y-3">
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Notes (optional):
+              </label>
+              <textarea
+                value={logNotes}
+                onChange={(e) => setLogNotes(e.target.value)}
+                placeholder={activity.notes || "Add notes for this activity..."}
+                rows={2}
+                className="w-full border border-green-200 dark:border-green-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleSimpleComplete(activity.id)}
+                className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded font-medium"
+              >
+                Complete
+              </button>
+              <button
+                onClick={handleCancelNotes}
+                className="flex-1 py-2 px-4 bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 rounded font-medium"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -24,6 +24,7 @@ export interface Activity {
   rating_scale: number | null;
   schedule_frequency: ScheduleFrequency;
   biweekly_start_date: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -36,6 +37,7 @@ export interface ActivityCreate {
   rating_scale?: number | null;
   schedule_frequency?: ScheduleFrequency;
   biweekly_start_date?: string | null;
+  notes?: string | null;
 }
 
 export type EnergyLevel = 'low' | 'medium' | 'high';
@@ -48,6 +50,7 @@ export interface Log {
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
   rating_value?: number | null;
+  notes?: string | null;
   created_at: string;
 }
 
@@ -57,6 +60,7 @@ export interface LogCreate {
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
   rating_value?: number | null;
+  notes?: string | null;
 }
 
 export interface Score {

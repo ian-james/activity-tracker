@@ -12,7 +12,8 @@ interface Props {
     completionType: CompletionType,
     ratingScale: number | null,
     scheduleFrequency: ScheduleFrequency,
-    biweeklyStartDate: string | null
+    biweeklyStartDate: string | null,
+    notes: string | null
   ) => Promise<void>;
   onCancel: () => void;
   initialActivity?: Activity;
@@ -32,6 +33,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
   const [ratingScale, setRatingScale] = useState<number>(initialActivity?.rating_scale || 5);
   const [scheduleFrequency, setScheduleFrequency] = useState<ScheduleFrequency>(initialActivity?.schedule_frequency || 'weekly');
   const [biweeklyStartDate, setBiweeklyStartDate] = useState<string>(initialActivity?.biweekly_start_date || '');
+  const [notes, setNotes] = useState(initialActivity?.notes || '');
   const [submitting, setSubmitting] = useState(false);
 
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,8 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
         completionType,
         completionType === 'rating' ? ratingScale : null,
         scheduleFrequency,
-        scheduleFrequency === 'biweekly' ? biweeklyStartDate : null
+        scheduleFrequency === 'biweekly' ? biweeklyStartDate : null,
+        notes.trim() || null
       );
       // Reset form
       setName('');
@@ -85,6 +88,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
       setRatingScale(5);
       setScheduleFrequency('weekly');
       setBiweeklyStartDate('');
+      setNotes('');
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +114,8 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
         template.completion_type,
         template.rating_scale,
         template.schedule_frequency,
-        template.biweekly_start_date
+        template.biweekly_start_date,
+        null // notes
       );
     } finally {
       setSubmitting(false);
@@ -220,6 +225,20 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-2">
+              Notes (optional):
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add notes or instructions for this activity..."
+              rows={3}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-y"
+              disabled={submitting}
+            />
           </div>
 
           <div>

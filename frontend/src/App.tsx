@@ -133,9 +133,9 @@ function AuthenticatedApp() {
     return adjusted;
   }, [dailyScore, activities, dateStr, currentDate]);
 
-  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null) => {
+  const handleToggle = async (activityId: number, complete: boolean, logId?: number, energyLevel?: EnergyLevel | null, qualityRating?: QualityRating | null, ratingValue?: number | null, notes?: string | null) => {
     if (complete) {
-      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel, quality_rating: qualityRating, rating_value: ratingValue });
+      await createLog({ activity_id: activityId, completed_at: dateStr, energy_level: energyLevel, quality_rating: qualityRating, rating_value: ratingValue, notes: notes });
     } else if (logId) {
       await deleteLog(logId);
     }
@@ -154,7 +154,8 @@ function AuthenticatedApp() {
     completionType: CompletionType,
     ratingScale: number | null,
     scheduleFrequency: ScheduleFrequency,
-    biweeklyStartDate: string | null
+    biweeklyStartDate: string | null,
+    notes: string | null
   ) => {
     if (editingActivity) {
       await updateActivity(editingActivity.id, {
@@ -165,7 +166,8 @@ function AuthenticatedApp() {
         completion_type: completionType,
         rating_scale: ratingScale,
         schedule_frequency: scheduleFrequency,
-        biweekly_start_date: biweeklyStartDate
+        biweekly_start_date: biweeklyStartDate,
+        notes
       });
       setEditingActivity(null);
     } else {
@@ -177,7 +179,8 @@ function AuthenticatedApp() {
         completion_type: completionType,
         rating_scale: ratingScale,
         schedule_frequency: scheduleFrequency,
-        biweekly_start_date: biweeklyStartDate
+        biweekly_start_date: biweeklyStartDate,
+        notes
       });
       setShowAddForm(false);
     }

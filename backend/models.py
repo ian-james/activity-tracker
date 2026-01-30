@@ -16,6 +16,7 @@ class ActivityCreate(BaseModel):
     rating_scale: Optional[int] = 5  # Only for 'rating' type: 3, 5, or 10
     schedule_frequency: str = 'weekly'  # 'weekly' or 'biweekly'
     biweekly_start_date: Optional[date] = None  # Required for 'biweekly'
+    notes: Optional[str] = None
 
     @field_validator('name')
     @classmethod
@@ -91,6 +92,7 @@ class ActivityUpdate(BaseModel):
     rating_scale: Optional[int] = None
     schedule_frequency: Optional[str] = None
     biweekly_start_date: Optional[date] = None
+    notes: Optional[str] = None
 
     @field_validator('name')
     @classmethod
@@ -176,6 +178,7 @@ class Activity(BaseModel):
     rating_scale: Optional[int]
     schedule_frequency: str
     biweekly_start_date: Optional[date]
+    notes: Optional[str]
     created_at: datetime
 
 
@@ -185,6 +188,7 @@ class LogCreate(BaseModel):
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
     rating_value: Optional[int] = None
+    notes: Optional[str] = None
 
     @field_validator('energy_level')
     @classmethod
@@ -221,6 +225,7 @@ class Log(BaseModel):
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
     rating_value: Optional[int] = None
+    notes: Optional[str] = None
     created_at: datetime
 
 
