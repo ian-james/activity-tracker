@@ -60,6 +60,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const [selectingRatingFor, setSelectingRatingFor] = useState<number | null>(null);
   const [notesFor, setNotesFor] = useState<number | null>(null);
   const [logNotes, setLogNotes] = useState<string>('');
+  const [showNotesInput, setShowNotesInput] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('category');
   const [scheduleOrder, setScheduleOrder] = useState<number[]>([]);
@@ -200,6 +201,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
       // Initialize notes with activity template notes
       setLogNotes(activity.notes || '');
       setNotesFor(activity.id);
+      setShowNotesInput(false); // Don't show notes by default
       // Branch based on completion type
       if (activity.completion_type === 'checkbox') {
         // Simple checkbox - show notes input
@@ -248,6 +250,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const handleCancelNotes = () => {
     setNotesFor(null);
     setLogNotes('');
+    setShowNotesInput(false);
     setSelectingEnergyFor(null);
     setSelectingRatingFor(null);
     setSelectedEnergy(null);
@@ -519,7 +522,15 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                 </button>
               ))}
             </div>
-            {notesFor === activity.id && (
+            {notesFor === activity.id && !showNotesInput && (
+              <button
+                onClick={() => setShowNotesInput(true)}
+                className="text-sm text-purple-600 dark:text-purple-400 hover:underline"
+              >
+                + Add notes
+              </button>
+            )}
+            {notesFor === activity.id && showNotesInput && (
               <div>
                 <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
                   Notes (optional):
@@ -531,6 +542,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                   rows={2}
                   className="w-full border border-purple-200 dark:border-purple-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
                   onClick={(e) => e.stopPropagation()}
+                  autoFocus
                 />
               </div>
             )}
@@ -570,7 +582,15 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                     ⚡⚡ High
                   </button>
                 </div>
-                {notesFor === activity.id && (
+                {notesFor === activity.id && !showNotesInput && (
+                  <button
+                    onClick={() => setShowNotesInput(true)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                  >
+                    + Add notes
+                  </button>
+                )}
+                {notesFor === activity.id && showNotesInput && (
                   <div className="mt-2">
                     <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
                       Notes (optional):
@@ -582,6 +602,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                       rows={2}
                       className="w-full border border-blue-200 dark:border-blue-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
                       onClick={(e) => e.stopPropagation()}
+                      autoFocus
                     />
                   </div>
                 )}
@@ -616,7 +637,15 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                     ⭐⭐⭐ Excellent
                   </button>
                 </div>
-                {notesFor === activity.id && (
+                {notesFor === activity.id && !showNotesInput && (
+                  <button
+                    onClick={() => setShowNotesInput(true)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2"
+                  >
+                    + Add notes
+                  </button>
+                )}
+                {notesFor === activity.id && showNotesInput && (
                   <div className="mt-2">
                     <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
                       Notes (optional):
@@ -628,6 +657,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                       rows={2}
                       className="w-full border border-blue-200 dark:border-blue-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
                       onClick={(e) => e.stopPropagation()}
+                      autoFocus
                     />
                   </div>
                 )}
@@ -645,19 +675,30 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
         {/* Simple Checkbox Selector (with notes only) */}
         {notesFor === activity.id && !showingEnergySelector && !showingRatingSelector && (
           <div className="p-3 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800 space-y-3">
-            <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Notes (optional):
-              </label>
-              <textarea
-                value={logNotes}
-                onChange={(e) => setLogNotes(e.target.value)}
-                placeholder={activity.notes || "Add notes for this activity..."}
-                rows={2}
-                className="w-full border border-green-200 dark:border-green-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+            {!showNotesInput && (
+              <button
+                onClick={() => setShowNotesInput(true)}
+                className="text-sm text-green-600 dark:text-green-400 hover:underline"
+              >
+                + Add notes
+              </button>
+            )}
+            {showNotesInput && (
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  Notes (optional):
+                </label>
+                <textarea
+                  value={logNotes}
+                  onChange={(e) => setLogNotes(e.target.value)}
+                  placeholder={activity.notes || "Add notes for this activity..."}
+                  rows={2}
+                  className="w-full border border-green-200 dark:border-green-700 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 text-sm resize-y"
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              </div>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => handleSimpleComplete(activity.id)}
