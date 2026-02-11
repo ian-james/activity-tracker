@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 export function LoginScreen() {
   const { signup, login } = useAuth();
@@ -87,6 +88,17 @@ export function LoginScreen() {
               minLength={6}
             />
           </div>
+
+          {!isSignup && (
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">

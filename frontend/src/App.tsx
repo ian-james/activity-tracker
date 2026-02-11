@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useActivities, useLogs, useScores } from './hooks/useApi';
 import { useExercises } from './hooks/useWorkouts';
 import { ActivityForm } from './components/ActivityForm';
@@ -9,6 +10,8 @@ import { Dashboard } from './components/Dashboard';
 import { Settings } from './components/Settings';
 import { CategoryManager } from './components/CategoryManager';
 import { LoginScreen } from './components/LoginScreen';
+import { RequestPasswordReset } from './components/RequestPasswordReset';
+import { ResetPassword } from './components/ResetPassword';
 import { Workout } from './components/Workout';
 import { TodoList } from './components/TodoList';
 import { PomodoroTimer } from './components/PomodoroTimer';
@@ -424,13 +427,31 @@ function App() {
     );
   }
 
-  // Show login screen if not authenticated
-  if (!user) {
-    return <LoginScreen />;
-  }
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/" replace /> : <LoginScreen />}
+        />
+        <Route
+          path="/forgot-password"
+          element={user ? <Navigate to="/" replace /> : <RequestPasswordReset />}
+        />
+        <Route
+          path="/reset-password/:token"
+          element={user ? <Navigate to="/" replace /> : <ResetPassword />}
+        />
 
-  // Show authenticated app
-  return <AuthenticatedApp />;
+        {/* Protected routes */}
+        <Route
+          path="/*"
+          element={user ? <AuthenticatedApp /> : <Navigate to="/login" replace />}
+        />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

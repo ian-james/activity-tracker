@@ -365,6 +365,54 @@ class Session(BaseModel):
     expires_at: datetime
 
 
+# Password Reset Models
+
+class PasswordResetRequest(BaseModel):
+    email: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not v:
+            raise ValueError('Email cannot be empty')
+        if '@' not in v or '.' not in v:
+            raise ValueError('Invalid email format')
+        if len(v) > 255:
+            raise ValueError('Email cannot exceed 255 characters')
+        return v
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator('token')
+    @classmethod
+    def validate_token(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Token cannot be empty')
+        return v
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        if len(v) > 100:
+            raise ValueError('Password cannot exceed 100 characters')
+        return v
+
+
+class PasswordResetToken(BaseModel):
+    id: int
+    token: str
+    user_id: int
+    created_at: datetime
+    expires_at: datetime
+
+
 # Exercise Tracking Models
 
 class ExerciseCreate(BaseModel):

@@ -2,8 +2,9 @@ from fastapi import APIRouter, Request, Response, Depends, HTTPException
 import bcrypt
 from auth.session import create_session, delete_session
 from auth.middleware import get_current_user
+from auth.password_reset import create_reset_token, validate_reset_token, delete_reset_token
 from database import get_db
-from models import User, UserSignup, UserLogin
+from models import User, UserSignup, UserLogin, PasswordResetRequest, PasswordReset
 from datetime import datetime
 import os
 import logging
@@ -219,3 +220,163 @@ async def logout(request: Request, response: Response):
     response.delete_cookie("session_id")
 
     return {"message": "Logged out successfully"}
+
+
+@router.post("/request-password-reset")
+async def request_password_reset(request_data: PasswordResetRequest):
+    """
+    Request a password reset token.
+    - Accepts email address
+    - Creates reset token if user exists
+    - Returns reset link in response (no email sending for now)
+    - Always returns success to prevent email enumeration
+    """
+    try:
+        email = request_data.email
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            # Find user by email
+            cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+            user_row = cursor.fetchone()
+
+            if user_row:
+                # User exists - create reset token
+                user_id = user_row['id']
+                token = create_reset_token(user_id)
+
+                # In production, send email here
+                # For now, return the reset link
+                reset_link = f"{FRONTEND_URL}/reset-password/{token}"
+                logger.info(f"Password reset requested for {email}")
+
+                return {
+                    "message": "Password reset link created",
+                    "reset_link": reset_link,
+                    "token": token,
+                    "expires_in_hours": 1
+                }
+            else:
+                # User doesn't exist - still return success to prevent enumeration
+                logger.info(f"Password reset requested for non-existent email: {email}")
+                return {
+                    "message": "If an account exists with this email, a reset link has been sent",
+                }
+
+    except Exception as e:
+        logger.error(f"Password reset request error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process reset request")
+
+
+@router.get("/validate-reset-token/{token}")
+async def validate_token_endpoint(token: str):
+    """
+    Validate a reset token without consuming it.
+    Returns user email if valid, 400 if invalid/expired.
+    """
+    try:
+        user_id = validate_reset_token(token)
+
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+        # Get user email to show on reset form
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT email FROM users WHERE id = ?", (user_id,))
+            user_row = cursor.fetchone()
+
+            if not user_row:
+                raise HTTPException(status_code=400, detail="User not found")
+
+            return {
+                "valid": True,
+                "email": user_row['email']
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token validation error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to validate token")
+
+
+@router.post("/reset-password", response_model=User)
+async def reset_password(reset_data: PasswordReset, response: Response):
+    """
+    Reset password using a valid token.
+    - Validates token
+    - Updates password hash
+    - Deletes reset token (single use)
+    - Invalidates all existing sessions for security
+    - Creates new session and logs user in
+    - Returns user info
+    """
+    try:
+        token = reset_data.token
+        new_password = reset_data.new_password
+
+        # Validate token and get user_id
+        user_id = validate_reset_token(token)
+
+        if not user_id:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+        # Hash new password
+        password_hash = hash_password(new_password)
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+
+            # Update password
+            cursor.execute("""
+                UPDATE users
+                SET password_hash = ?, last_login_at = ?
+                WHERE id = ?
+            """, (password_hash, datetime.utcnow(), user_id))
+
+            # Delete the reset token (single use)
+            cursor.execute("DELETE FROM password_reset_tokens WHERE token = ?", (token,))
+
+            # Delete all existing sessions for security (force re-login on other devices)
+            cursor.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+            # Get user data
+            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            user_row = cursor.fetchone()
+
+            if not user_row:
+                raise HTTPException(status_code=400, detail="User not found")
+
+            logger.info(f"Password reset successful for user_id={user_id}")
+
+        # Create new session and log user in
+        session_id = create_session(user_id)
+
+        # Set HTTP-only cookie
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            samesite="lax",
+            secure=(ENVIRONMENT == "production"),
+            max_age=30 * 24 * 60 * 60  # 30 days
+        )
+
+        # Return user object
+        return User(
+            id=user_row['id'],
+            google_id=user_row['google_id'] if user_row['google_id'] else None,
+            email=user_row['email'],
+            name=user_row['name'] if user_row['name'] else None,
+            profile_picture=user_row['profile_picture'] if user_row['profile_picture'] else None,
+            created_at=datetime.fromisoformat(user_row['created_at']),
+            last_login_at=datetime.utcnow()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password reset error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset password")

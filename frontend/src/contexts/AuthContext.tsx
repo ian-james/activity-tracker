@@ -25,6 +25,9 @@ interface AuthContextType {
   login: (data: LoginData) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<{ reset_link?: string; token?: string }>;
+  validateResetToken: (token: string) => Promise<{ email: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -103,12 +106,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const requestPasswordReset = async (email: string) => {
+    const res = await fetch('/api/auth/request-password-reset', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || 'Failed to request password reset');
+    }
+
+    return res.json();
+  };
+
+  const validateResetToken = async (token: string) => {
+    const res = await fetch(`/api/auth/validate-reset-token/${token}`);
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || 'Invalid or expired reset token');
+    }
+
+    return res.json();
+  };
+
+  const resetPassword = async (token: string, newPassword: string) => {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || 'Failed to reset password');
+    }
+
+    const userData = await res.json();
+    setUser(userData);
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signup, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, signup, login, logout, checkAuth, requestPasswordReset, validateResetToken, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
