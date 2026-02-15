@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useMockData } from '../contexts/MockDataContext';
+import { useEmailNotifications } from '../hooks/useEmailNotifications';
 
 export function Settings() {
   const { theme, toggleTheme } = useTheme();
@@ -12,6 +13,28 @@ export function Settings() {
   const [resetting, setResetting] = useState(false);
   const [resetStatus, setResetStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Email notifications
+  const { preferences: emailPrefs, loading: emailLoading, fetchPreferences, updatePreferences, sendTestEmail } = useEmailNotifications();
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
+  const [testEmailStatus, setTestEmailStatus] = useState<string>('');
+  const [sendingTest, setSendingTest] = useState(false);
+
+  // Fetch email preferences on mount
+  useEffect(() => {
+    if (!mockDataEnabled) {
+      fetchPreferences().catch(console.error);
+    }
+  }, [mockDataEnabled, fetchPreferences]);
+
+  // Update local state when preferences are fetched
+  useEffect(() => {
+    if (emailPrefs) {
+      setEmailEnabled(emailPrefs.enable_weekly_email);
+      setEmailAddress(emailPrefs.email_address || '');
+    }
+  }, [emailPrefs]);
 
   const handleExport = async () => {
     try {
@@ -124,6 +147,53 @@ export function Settings() {
     }
   };
 
+  const handleEmailToggle = async () => {
+    const newValue = !emailEnabled;
+    setEmailEnabled(newValue);
+
+    try {
+      await updatePreferences({ enable_weekly_email: newValue });
+    } catch (error) {
+      // Revert on error
+      setEmailEnabled(!newValue);
+      console.error('Failed to update email preference:', error);
+    }
+  };
+
+  const handleEmailAddressChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setEmailAddress(newValue);
+  };
+
+  const handleEmailAddressBlur = async () => {
+    if (emailPrefs && emailAddress !== (emailPrefs.email_address || '')) {
+      try {
+        await updatePreferences({ email_address: emailAddress || undefined });
+      } catch (error) {
+        console.error('Failed to update email address:', error);
+        // Revert to previous value
+        setEmailAddress(emailPrefs.email_address || '');
+      }
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    setSendingTest(true);
+    setTestEmailStatus('Sending...');
+
+    try {
+      await sendTestEmail();
+      setTestEmailStatus('✓ Test email sent! Check your inbox.');
+      setTimeout(() => setTestEmailStatus(''), 5000);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to send test email';
+      setTestEmailStatus(`✗ ${errorMsg}`);
+      setTimeout(() => setTestEmailStatus(''), 5000);
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
@@ -200,6 +270,100 @@ export function Settings() {
               ⚠️ Using demo data. No changes will be saved.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Email Notifications Card */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">
+          Email Notifications
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Receive weekly activity summaries via email every Sunday at 8:00 PM
+        </p>
+
+        <div className="space-y-4">
+          {/* Enable Weekly Email Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Enable Weekly Emails
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Sent every Sunday at 8:00 PM
+              </p>
+            </div>
+            <button
+              onClick={handleEmailToggle}
+              disabled={mockDataEnabled || emailLoading}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                emailEnabled ? 'bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'
+              } ${(mockDataEnabled || emailLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              aria-label="Toggle weekly emails"
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  emailEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Email Address Input */}
+          {emailEnabled && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Email Address (optional)
+              </label>
+              <input
+                type="email"
+                value={emailAddress}
+                onChange={handleEmailAddressChange}
+                onBlur={handleEmailAddressBlur}
+                disabled={mockDataEnabled || emailLoading}
+                placeholder="Leave blank to use your account email"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Override your account email for weekly summaries
+              </p>
+            </div>
+          )}
+
+          {/* Last Email Sent */}
+          {emailPrefs?.last_email_sent_at && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Last email sent: {new Date(emailPrefs.last_email_sent_at).toLocaleString()}
+            </div>
+          )}
+
+          {/* Send Test Email Button */}
+          {emailEnabled && (
+            <div>
+              <button
+                onClick={handleSendTestEmail}
+                disabled={mockDataEnabled || sendingTest}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                {sendingTest ? 'Sending...' : 'Send Test Email Now'}
+              </button>
+              {testEmailStatus && (
+                <p className={`mt-2 text-sm ${testEmailStatus.startsWith('✓') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {testEmailStatus}
+                </p>
+              )}
+            </div>
+          )}
+
+          {mockDataEnabled && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Email notifications disabled while using demo data
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-800 dark:text-blue-200">
+          <strong>Note:</strong> Emails include your weekly activity summary, completion charts, open todos, and workout progress.
         </div>
       </div>
 

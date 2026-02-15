@@ -9,22 +9,25 @@ load_dotenv()
 
 from database import init_db
 from routers import (
-    activities, logs, scores, categories, auth, 
-    export, analytics, exercises, workouts, 
-    preferences, templates, todos, special_days
+    activities, logs, scores, categories, auth,
+    export, analytics, exercises, workouts,
+    preferences, templates, todos, special_days,
+    email_notifications
 )
+from services.scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
     # Replaces @app.on_event("startup")
     init_db()
-    
+    start_scheduler()  # Start email scheduler
+
     yield
-    
+
     # --- Shutdown ---
     # Replaces @app.on_event("shutdown") (if you had any)
-    pass
+    stop_scheduler()  # Stop email scheduler
 
 app = FastAPI(title="Activity Tracker API", lifespan=lifespan)
 
@@ -54,6 +57,7 @@ app.include_router(preferences.router)
 app.include_router(templates.router)
 app.include_router(todos.router)
 app.include_router(special_days.router)
+app.include_router(email_notifications.router)
 
 @app.get("/")
 def root():

@@ -585,6 +585,9 @@ class UserPreferences(BaseModel):
     user_id: int
     weight_unit: str
     default_rest_seconds: int
+    enable_weekly_email: bool
+    email_address: Optional[str]
+    last_email_sent_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
@@ -592,6 +595,8 @@ class UserPreferences(BaseModel):
 class UserPreferencesUpdate(BaseModel):
     weight_unit: Optional[str] = None
     default_rest_seconds: Optional[int] = None
+    enable_weekly_email: Optional[bool] = None
+    email_address: Optional[str] = None
 
     @field_validator('weight_unit')
     @classmethod
@@ -611,6 +616,20 @@ class UserPreferencesUpdate(BaseModel):
             raise ValueError('Rest seconds cannot be negative')
         if v > 3600:
             raise ValueError('Rest seconds cannot exceed 3600 (1 hour)')
+        return v
+
+    @field_validator('email_address')
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if not v:
+            return None
+        if '@' not in v or '.' not in v:
+            raise ValueError('Invalid email format')
+        if len(v) > 255:
+            raise ValueError('Email cannot exceed 255 characters')
         return v
 
 
