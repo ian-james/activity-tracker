@@ -273,6 +273,76 @@ function AuthenticatedApp() {
     }
   };
 
+  const handleMarkAllComplete = async () => {
+    const confirmed = window.confirm(
+      'Mark all scheduled activities for today as complete?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Get all activities scheduled for today that aren't already completed
+      const scheduledActivities = activities.filter(a =>
+        a.is_active && isScheduledForDay(a, currentDate)
+      );
+
+      // Find activities that don't have logs yet
+      const loggedActivityIds = new Set(logs.map(log => log.activity_id));
+      const unloggedActivities = scheduledActivities.filter(
+        a => !loggedActivityIds.has(a.id)
+      );
+
+      // Create logs for all unlogged activities
+      await Promise.all(
+        unloggedActivities.map(activity =>
+          createLog({
+            activity_id: activity.id,
+            completed_at: dateStr,
+            energy_level: null,
+            quality_rating: null,
+            rating_value: null,
+            notes: null,
+          })
+        )
+      );
+
+      // Refresh all data
+      await Promise.all([
+        fetchLogs(),
+        fetchDailyScore(dateStr),
+        fetchWeeklyScore(dateStr),
+        fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1)
+      ]);
+    } catch (error) {
+      console.error('Failed to mark all complete:', error);
+      alert('Failed to mark all activities as complete. Please try again.');
+    }
+  };
+
+  const handleResetAll = async () => {
+    const confirmed = window.confirm(
+      'Reset all activities for today? This will remove all completions.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Delete all logs for today
+      await Promise.all(logs.map(log => deleteLog(log.id)));
+
+      // Refresh all data
+      await Promise.all([
+        fetchLogs(),
+        fetchDailyScore(dateStr),
+        fetchWeeklyScore(dateStr),
+        fetchMonthlyScore(currentDate.getFullYear(), currentDate.getMonth() + 1)
+      ]);
+    } catch (error) {
+      console.error('Failed to reset all:', error);
+      alert('Failed to reset activities. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto p-4">
@@ -398,14 +468,32 @@ function AuthenticatedApp() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+
               {showActivities && (
-                <DailyTracker
-                  activities={activities}
-                  logs={logs}
-                  date={dateStr}
-                  currentDate={currentDate}
-                  onToggle={handleToggle}
-                />
+                <>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={handleMarkAllComplete}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                    >
+                      ✓ Mark All Complete
+                    </button>
+                    <button
+                      onClick={handleResetAll}
+                      className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                    >
+                      ↺ Reset All
+                    </button>
+                  </div>
+
+                  <DailyTracker
+                    activities={activities}
+                    logs={logs}
+                    date={dateStr}
+                    currentDate={currentDate}
+                    onToggle={handleToggle}
+                  />
+                </>
               )}
             </div>
           </div>
