@@ -12,7 +12,8 @@ from routers import (
     activities, logs, scores, categories, auth,
     export, analytics, exercises, workouts,
     preferences, templates, todos, special_days,
-    email_notifications
+    email_notifications, nutrition_goals, meals,
+    food_items, weight_logs, nutrition_summary
 )
 from services.scheduler import start_scheduler, stop_scheduler
 
@@ -58,6 +59,11 @@ app.include_router(templates.router)
 app.include_router(todos.router)
 app.include_router(special_days.router)
 app.include_router(email_notifications.router)
+app.include_router(nutrition_goals.router)
+app.include_router(meals.router)
+app.include_router(food_items.router)
+app.include_router(weight_logs.router)
+app.include_router(nutrition_summary.router)
 
 @app.get("/")
 def root():

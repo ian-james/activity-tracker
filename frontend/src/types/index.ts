@@ -368,3 +368,153 @@ export interface SpecialDayUpdate {
   day_type?: SpecialDayType;
   notes?: string | null;
 }
+
+// Diet Tracking Types
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface NutritionGoals {
+  id: number;
+  user_id: number;
+  base_calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg: number;
+  vitamin_d_mcg: number;
+  calcium_mg: number;
+  iron_mg: number;
+  adjust_for_activity: boolean;
+  calories_per_activity_point: number;
+  target_weight: number | null;
+  weight_unit: WeightUnit;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NutritionGoalsUpdate {
+  base_calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  vitamin_c_mg?: number;
+  vitamin_d_mcg?: number;
+  calcium_mg?: number;
+  iron_mg?: number;
+  adjust_for_activity?: boolean;
+  calories_per_activity_point?: number;
+  target_weight?: number | null;
+  weight_unit?: WeightUnit;
+}
+
+export interface Meal {
+  id: number;
+  user_id: number;
+  meal_date: string;
+  meal_type: MealType;
+  name: string;
+  total_calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg: number;
+  vitamin_d_mcg: number;
+  calcium_mg: number;
+  iron_mg: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface MealCreate {
+  meal_date: string;
+  meal_type: MealType;
+  name: string;
+  total_calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg?: number;
+  vitamin_d_mcg?: number;
+  calcium_mg?: number;
+  iron_mg?: number;
+  notes?: string | null;
+}
+
+export interface FoodItem {
+  id: number;
+  user_id: number;
+  name: string;
+  serving_size: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg: number;
+  vitamin_d_mcg: number;
+  calcium_mg: number;
+  iron_mg: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface FoodItemCreate {
+  name: string;
+  serving_size: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg?: number;
+  vitamin_d_mcg?: number;
+  calcium_mg?: number;
+  iron_mg?: number;
+}
+
+export interface WeightLog {
+  id: number;
+  user_id: number;
+  log_date: string;
+  weight: number;
+  weight_unit: WeightUnit;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface WeightLogCreate {
+  log_date: string;
+  weight: number;
+  weight_unit: WeightUnit;
+  notes?: string | null;
+}
+
+export interface DailyNutritionSummary {
+  date: string;
+  goals: NutritionGoals;
+  actual: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+    vitamin_c_mg: number;
+    vitamin_d_mcg: number;
+    calcium_mg: number;
+    iron_mg: number;
+  };
+  percentage: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  };
+  meals: Meal[];
+  activity_points: number;
+  adjusted_calorie_goal: number;
+}

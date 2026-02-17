@@ -16,10 +16,11 @@ import { Workout } from './components/Workout';
 import { TodoList } from './components/TodoList';
 import { PomodoroTimer } from './components/PomodoroTimer';
 import { ActivitiesPage } from './components/ActivitiesPage';
+import { Diet } from './components/Diet';
 import { useAuth } from './contexts/AuthContext';
 import { DayOfWeek, Activity, EnergyLevel, QualityRating, Score, CompletionType, ScheduleFrequency } from './types';
 
-type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'pomodoro' | 'todo' | 'settings';
+type View = 'tracker' | 'dashboard' | 'manage' | 'workout' | 'pomodoro' | 'todo' | 'diet' | 'settings';
 
 function formatDate(date: Date): string {
   // Use local date, not UTC, to avoid timezone shifting
@@ -376,6 +377,7 @@ function AuthenticatedApp() {
               { id: 'workout', label: 'Workout' },
               { id: 'pomodoro', label: 'Pomodoro' },
               { id: 'todo', label: 'Todo' },
+              { id: 'diet', label: 'Diet' },
               { id: 'settings', label: 'Settings' },
             ].map((tab) => (
               <button
@@ -421,6 +423,8 @@ function AuthenticatedApp() {
         )}
 
         {view === 'todo' && <TodoList />}
+
+        {view === 'diet' && <Diet />}
 
         {view === 'settings' && <Settings />}
 

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary, SpecialDay, SpecialDayCreate } from '../types';
+import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary, SpecialDay, SpecialDayCreate, NutritionGoals, NutritionGoalsUpdate, Meal, MealCreate, FoodItem, FoodItemCreate, WeightLog, WeightLogCreate, DailyNutritionSummary } from '../types';
 import { useMockData as useMockDataContext } from '../contexts/MockDataContext';
 import {
   generateMockActivities,
@@ -416,4 +416,288 @@ export function useSpecialDays(startDate: string, endDate: string) {
   }, [useMockData, fetchSpecialDays]);
 
   return { specialDays, loading, fetchSpecialDays, createSpecialDay, deleteSpecialDay };
+}
+
+// Diet Tracking Hooks
+
+export function useNutritionGoals() {
+  const { useMockData } = useMockDataContext();
+  const [goals, setGoals] = useState<NutritionGoals | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchGoals = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Mock default goals
+        setGoals({
+          id: 1,
+          user_id: 1,
+          base_calories: 2000,
+          protein_g: 150,
+          carbs_g: 200,
+          fat_g: 65,
+          fiber_g: 25,
+          vitamin_c_mg: 90,
+          vitamin_d_mcg: 20,
+          calcium_mg: 1000,
+          iron_mg: 18,
+          adjust_for_activity: true,
+          calories_per_activity_point: 10,
+          target_weight: null,
+          weight_unit: 'lbs',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      } else {
+        const data = await fetchApi<NutritionGoals>('/nutrition/goals');
+        setGoals(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [useMockData]);
+
+  const updateGoals = useCallback(async (updates: NutritionGoalsUpdate) => {
+    if (useMockData) {
+      console.log('Mock mode: Update goals ignored', updates);
+      return;
+    }
+    const data = await fetchApi<NutritionGoals>('/nutrition/goals', {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+    setGoals(data);
+  }, [useMockData]);
+
+  return { goals, loading, fetchGoals, updateGoals };
+}
+
+export function useMeals(startDate?: string, endDate?: string) {
+  const { useMockData } = useMockDataContext();
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchMeals = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setMeals([]);
+      } else {
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        const url = `/meals${params.toString() ? '?' + params.toString() : ''}`;
+        const data = await fetchApi<Meal[]>(url);
+        setMeals(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [startDate, endDate, useMockData]);
+
+  const createMeal = useCallback(async (meal: MealCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Create meal ignored', meal);
+      return;
+    }
+    await fetchApi<Meal>('/meals', {
+      method: 'POST',
+      body: JSON.stringify(meal),
+    });
+    await fetchMeals();
+  }, [useMockData, fetchMeals]);
+
+  const updateMeal = useCallback(async (id: number, meal: MealCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Update meal ignored', id, meal);
+      return;
+    }
+    await fetchApi<Meal>(`/meals/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(meal),
+    });
+    await fetchMeals();
+  }, [useMockData, fetchMeals]);
+
+  const deleteMeal = useCallback(async (id: number) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete meal ignored', id);
+      return;
+    }
+    await fetchApi(`/meals/${id}`, { method: 'DELETE' });
+    await fetchMeals();
+  }, [useMockData, fetchMeals]);
+
+  return { meals, loading, fetchMeals, createMeal, updateMeal, deleteMeal };
+}
+
+export function useFoodItems() {
+  const { useMockData } = useMockDataContext();
+  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchFoodItems = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setFoodItems([]);
+      } else {
+        const data = await fetchApi<FoodItem[]>('/food-items');
+        setFoodItems(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [useMockData]);
+
+  const createFoodItem = useCallback(async (food: FoodItemCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Create food item ignored', food);
+      return;
+    }
+    await fetchApi<FoodItem>('/food-items', {
+      method: 'POST',
+      body: JSON.stringify(food),
+    });
+    await fetchFoodItems();
+  }, [useMockData, fetchFoodItems]);
+
+  const updateFoodItem = useCallback(async (id: number, food: FoodItemCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Update food item ignored', id, food);
+      return;
+    }
+    await fetchApi<FoodItem>(`/food-items/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(food),
+    });
+    await fetchFoodItems();
+  }, [useMockData, fetchFoodItems]);
+
+  const deleteFoodItem = useCallback(async (id: number) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete food item ignored', id);
+      return;
+    }
+    await fetchApi(`/food-items/${id}`, { method: 'DELETE' });
+    await fetchFoodItems();
+  }, [useMockData, fetchFoodItems]);
+
+  return { foodItems, loading, fetchFoodItems, createFoodItem, updateFoodItem, deleteFoodItem };
+}
+
+export function useWeightLogs(days: number = 90) {
+  const { useMockData } = useMockDataContext();
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchWeightLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setWeightLogs([]);
+      } else {
+        const data = await fetchApi<WeightLog[]>(`/weight-logs?days=${days}`);
+        setWeightLogs(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [days, useMockData]);
+
+  const logWeight = useCallback(async (log: WeightLogCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Log weight ignored', log);
+      return;
+    }
+    await fetchApi<WeightLog>('/weight-logs', {
+      method: 'POST',
+      body: JSON.stringify(log),
+    });
+    await fetchWeightLogs();
+  }, [useMockData, fetchWeightLogs]);
+
+  const deleteWeightLog = useCallback(async (id: number) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete weight log ignored', id);
+      return;
+    }
+    await fetchApi(`/weight-logs/${id}`, { method: 'DELETE' });
+    await fetchWeightLogs();
+  }, [useMockData, fetchWeightLogs]);
+
+  return { weightLogs, loading, fetchWeightLogs, logWeight, deleteWeightLog };
+}
+
+export function useNutritionSummary(targetDate: string) {
+  const { useMockData } = useMockDataContext();
+  const [summary, setSummary] = useState<DailyNutritionSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSummary = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        // Mock summary with empty data
+        setSummary({
+          date: targetDate,
+          goals: {
+            id: 1,
+            user_id: 1,
+            base_calories: 2000,
+            protein_g: 150,
+            carbs_g: 200,
+            fat_g: 65,
+            fiber_g: 25,
+            vitamin_c_mg: 90,
+            vitamin_d_mcg: 20,
+            calcium_mg: 1000,
+            iron_mg: 18,
+            adjust_for_activity: true,
+            calories_per_activity_point: 10,
+            target_weight: null,
+            weight_unit: 'lbs',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          actual: {
+            calories: 0,
+            protein_g: 0,
+            carbs_g: 0,
+            fat_g: 0,
+            fiber_g: 0,
+            vitamin_c_mg: 0,
+            vitamin_d_mcg: 0,
+            calcium_mg: 0,
+            iron_mg: 0,
+          },
+          percentage: {
+            calories: 0,
+            protein_g: 0,
+            carbs_g: 0,
+            fat_g: 0,
+            fiber_g: 0,
+          },
+          meals: [],
+          activity_points: 0,
+          adjusted_calorie_goal: 2000,
+        });
+      } else {
+        const data = await fetchApi<DailyNutritionSummary>(
+          `/nutrition/summary/daily?target_date=${targetDate}`
+        );
+        setSummary(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [targetDate, useMockData]);
+
+  return { summary, loading, fetchSummary };
 }

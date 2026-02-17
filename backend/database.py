@@ -311,4 +311,112 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_category ON todos(category)")
             logger.info("Added category column to todos table")
 
+        # Create nutrition_goals table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS nutrition_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                base_calories INTEGER NOT NULL DEFAULT 2000,
+                protein_g INTEGER NOT NULL DEFAULT 150,
+                carbs_g INTEGER NOT NULL DEFAULT 200,
+                fat_g INTEGER NOT NULL DEFAULT 65,
+                fiber_g INTEGER DEFAULT 25,
+                vitamin_c_mg INTEGER DEFAULT 90,
+                vitamin_d_mcg INTEGER DEFAULT 20,
+                calcium_mg INTEGER DEFAULT 1000,
+                iron_mg INTEGER DEFAULT 18,
+                adjust_for_activity INTEGER NOT NULL DEFAULT 1,
+                calories_per_activity_point REAL DEFAULT 10.0,
+                target_weight REAL,
+                weight_unit TEXT DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_nutrition_goals_user ON nutrition_goals(user_id)")
+
+        # Create meals table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS meals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                meal_date DATE NOT NULL,
+                meal_type TEXT NOT NULL CHECK(meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
+                name TEXT NOT NULL,
+                total_calories REAL NOT NULL,
+                protein_g REAL NOT NULL DEFAULT 0,
+                carbs_g REAL NOT NULL DEFAULT 0,
+                fat_g REAL NOT NULL DEFAULT 0,
+                fiber_g REAL DEFAULT 0,
+                vitamin_c_mg REAL DEFAULT 0,
+                vitamin_d_mcg REAL DEFAULT 0,
+                calcium_mg REAL DEFAULT 0,
+                iron_mg REAL DEFAULT 0,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meals_user ON meals(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(meal_date)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meals_user_date ON meals(user_id, meal_date)")
+
+        # Create food_items table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS food_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                serving_size TEXT NOT NULL,
+                calories REAL NOT NULL,
+                protein_g REAL NOT NULL DEFAULT 0,
+                carbs_g REAL NOT NULL DEFAULT 0,
+                fat_g REAL NOT NULL DEFAULT 0,
+                fiber_g REAL DEFAULT 0,
+                vitamin_c_mg REAL DEFAULT 0,
+                vitamin_d_mcg REAL DEFAULT 0,
+                calcium_mg REAL DEFAULT 0,
+                iron_mg REAL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_food_items_user ON food_items(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_food_items_active ON food_items(user_id, is_active)")
+
+        # Create meal_food_items table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS meal_food_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meal_id INTEGER NOT NULL,
+                food_item_id INTEGER NOT NULL,
+                quantity REAL NOT NULL DEFAULT 1.0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (meal_id) REFERENCES meals (id) ON DELETE CASCADE,
+                FOREIGN KEY (food_item_id) REFERENCES food_items (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meal_food_items_meal ON meal_food_items(meal_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meal_food_items_food ON meal_food_items(food_item_id)")
+
+        # Create weight_logs table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS weight_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                log_date DATE NOT NULL,
+                weight REAL NOT NULL,
+                weight_unit TEXT NOT NULL DEFAULT 'lbs' CHECK(weight_unit IN ('lbs', 'kg')),
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                UNIQUE(user_id, log_date)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_user ON weight_logs(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_date ON weight_logs(log_date)")
+
+        logger.info("Diet tracking tables created/verified")
         logger.info("Exercise tracking tables created/verified")

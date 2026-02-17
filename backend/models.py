@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator
 from datetime import date, datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 import re
 
 # Valid days: mon, tue, wed, thu, fri, sat, sun
@@ -800,3 +800,220 @@ class SpecialDay(BaseModel):
     day_type: str
     notes: Optional[str]
     created_at: datetime
+
+
+# Diet Tracking Models
+
+class NutritionGoalsCreate(BaseModel):
+    base_calories: int = 2000
+    protein_g: int = 150
+    carbs_g: int = 200
+    fat_g: int = 65
+    fiber_g: Optional[int] = 25
+    vitamin_c_mg: Optional[int] = 90
+    vitamin_d_mcg: Optional[int] = 20
+    calcium_mg: Optional[int] = 1000
+    iron_mg: Optional[int] = 18
+    adjust_for_activity: bool = True
+    calories_per_activity_point: float = 10.0
+    target_weight: Optional[float] = None
+    weight_unit: str = 'lbs'
+
+    @field_validator('weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: str) -> str:
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+
+class NutritionGoalsUpdate(BaseModel):
+    base_calories: Optional[int] = None
+    protein_g: Optional[int] = None
+    carbs_g: Optional[int] = None
+    fat_g: Optional[int] = None
+    fiber_g: Optional[int] = None
+    vitamin_c_mg: Optional[int] = None
+    vitamin_d_mcg: Optional[int] = None
+    calcium_mg: Optional[int] = None
+    iron_mg: Optional[int] = None
+    adjust_for_activity: Optional[bool] = None
+    calories_per_activity_point: Optional[float] = None
+    target_weight: Optional[float] = None
+    weight_unit: Optional[str] = None
+
+    @field_validator('weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+
+class NutritionGoals(BaseModel):
+    id: int
+    user_id: int
+    base_calories: int
+    protein_g: int
+    carbs_g: int
+    fat_g: int
+    fiber_g: int
+    vitamin_c_mg: int
+    vitamin_d_mcg: int
+    calcium_mg: int
+    iron_mg: int
+    adjust_for_activity: bool
+    calories_per_activity_point: float
+    target_weight: Optional[float]
+    weight_unit: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class MealCreate(BaseModel):
+    meal_date: date
+    meal_type: str
+    name: str
+    total_calories: float
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
+    fiber_g: float = 0
+    vitamin_c_mg: float = 0
+    vitamin_d_mcg: float = 0
+    calcium_mg: float = 0
+    iron_mg: float = 0
+    notes: Optional[str] = None
+
+    @field_validator('meal_type')
+    @classmethod
+    def validate_meal_type(cls, v: str) -> str:
+        if v not in ['breakfast', 'lunch', 'dinner', 'snack']:
+            raise ValueError('Invalid meal type')
+        return v
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 200:
+            raise ValueError('Name cannot exceed 200 characters')
+        return v
+
+
+class Meal(BaseModel):
+    id: int
+    user_id: int
+    meal_date: date
+    meal_type: str
+    name: str
+    total_calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    fiber_g: float
+    vitamin_c_mg: float
+    vitamin_d_mcg: float
+    calcium_mg: float
+    iron_mg: float
+    notes: Optional[str]
+    created_at: datetime
+
+
+class FoodItemCreate(BaseModel):
+    name: str
+    serving_size: str
+    calories: float
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
+    fiber_g: float = 0
+    vitamin_c_mg: float = 0
+    vitamin_d_mcg: float = 0
+    calcium_mg: float = 0
+    iron_mg: float = 0
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 200:
+            raise ValueError('Name cannot exceed 200 characters')
+        return v
+
+    @field_validator('serving_size')
+    @classmethod
+    def validate_serving_size(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Serving size cannot be empty')
+        if len(v) > 100:
+            raise ValueError('Serving size cannot exceed 100 characters')
+        return v
+
+
+class FoodItem(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    serving_size: str
+    calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    fiber_g: float
+    vitamin_c_mg: float
+    vitamin_d_mcg: float
+    calcium_mg: float
+    iron_mg: float
+    is_active: bool
+    created_at: datetime
+
+
+class WeightLogCreate(BaseModel):
+    log_date: date
+    weight: float
+    weight_unit: str = 'lbs'
+    notes: Optional[str] = None
+
+    @field_validator('weight_unit')
+    @classmethod
+    def validate_weight_unit(cls, v: str) -> str:
+        if v not in ['lbs', 'kg']:
+            raise ValueError('Weight unit must be lbs or kg')
+        return v
+
+    @field_validator('weight')
+    @classmethod
+    def validate_weight(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('Weight must be positive')
+        if v > 1000:
+            raise ValueError('Weight must be less than 1000')
+        return v
+
+
+class WeightLog(BaseModel):
+    id: int
+    user_id: int
+    log_date: date
+    weight: float
+    weight_unit: str
+    notes: Optional[str]
+    created_at: datetime
+
+
+class DailyNutritionSummary(BaseModel):
+    date: date
+    goals: NutritionGoals
+    actual: Dict[str, float]
+    percentage: Dict[str, float]
+    meals: List[Meal]
+    activity_points: int
+    adjusted_calorie_goal: int
