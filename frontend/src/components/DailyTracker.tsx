@@ -256,6 +256,46 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
     setSelectedEnergy(null);
   };
 
+  const handleBulkCompleteCategory = async (categoryKey: string, categoryName: string) => {
+    // Get all incomplete activities in this category
+    const group = groupedActivities().find(([key]) => key === categoryKey);
+    if (!group) return;
+
+    const incompleteActivities = group[1].activities.filter(
+      activity => !completedIds.has(activity.id) && !skippedActivities.has(activity.id)
+    );
+
+    if (incompleteActivities.length === 0) {
+      return; // Nothing to complete
+    }
+
+    // Show confirmation dialog
+    const confirmMessage = `Complete all ${incompleteActivities.length} incomplete activities in "${categoryName}"?`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    // Complete each activity with appropriate default values
+    for (const activity of incompleteActivities) {
+      try {
+        if (activity.completion_type === 'checkbox') {
+          // Simple checkbox - no extra values needed
+          await onToggle(activity.id, true, undefined, null, null, null, null);
+        } else if (activity.completion_type === 'rating') {
+          // Use middle rating value (3 for 5-point scale, rounded for others)
+          const middleValue = Math.ceil((activity.rating_scale || 5) / 2);
+          await onToggle(activity.id, true, undefined, null, null, middleValue, null);
+        } else if (activity.completion_type === 'energy_quality') {
+          // Use medium for both energy and quality
+          await onToggle(activity.id, true, undefined, 'medium', 'medium', null, null);
+        }
+      } catch (error) {
+        console.error(`Failed to complete activity ${activity.id}:`, error);
+        // Continue with other activities even if one fails
+      }
+    }
+  };
+
   const toggleCategoryCollapse = (categoryKey: string) => {
     setCollapsedCategories(prev => {
       const newSet = new Set(prev);
@@ -841,11 +881,11 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
         return (
           <div key={key} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <button
-              onClick={() => toggleCategoryCollapse(key)}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-            >
-              <div className="flex items-center gap-2">
+            <div className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700">
+              <button
+                onClick={() => toggleCategoryCollapse(key)}
+                className="flex items-center gap-2 flex-1 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors rounded px-2 py-1 -ml-2"
+              >
                 <div
                   className="w-4 h-4 rounded-full"
                   style={{ backgroundColor: group.color }}
@@ -856,18 +896,34 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   {completedCount}/{totalCount}
                 </span>
-              </div>
-              <svg
-                className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
-                  isCollapsed ? '' : 'rotate-180'
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+                <svg
+                  className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+                    isCollapsed ? '' : 'rotate-180'
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {completedCount < totalCount && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBulkCompleteCategory(key, group.name);
+                  }}
+                  className="ml-2 px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 rounded-md transition-colors flex items-center gap-1"
+                  title={`Complete all ${totalCount - completedCount} incomplete activities`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Complete All</span>
+                </button>
+              )}
+            </div>
 
             {!isCollapsed && (
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
