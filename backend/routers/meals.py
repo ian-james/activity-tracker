@@ -74,13 +74,17 @@ def create_meal(meal: MealCreate, current_user: User = Depends(get_current_user)
             INSERT INTO meals (
                 user_id, meal_date, meal_type, name, total_calories,
                 protein_g, carbs_g, fat_g, fiber_g,
-                vitamin_c_mg, vitamin_d_mcg, calcium_mg, iron_mg, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                vitamin_c_mg, vitamin_d_mcg, calcium_mg, iron_mg,
+                magnesium_mg, potassium_mg, sodium_mg, zinc_mg,
+                vitamin_b6_mg, vitamin_b12_mcg, omega3_g, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             current_user.id, meal.meal_date, meal.meal_type, meal.name,
             meal.total_calories, meal.protein_g, meal.carbs_g, meal.fat_g,
             meal.fiber_g, meal.vitamin_c_mg, meal.vitamin_d_mcg,
-            meal.calcium_mg, meal.iron_mg, meal.notes
+            meal.calcium_mg, meal.iron_mg, meal.magnesium_mg, meal.potassium_mg,
+            meal.sodium_mg, meal.zinc_mg, meal.vitamin_b6_mg, meal.vitamin_b12_mcg,
+            meal.omega3_g, meal.notes
         ))
         meal_id = cursor.lastrowid
 
@@ -112,13 +116,16 @@ def update_meal(
                 meal_date = ?, meal_type = ?, name = ?, total_calories = ?,
                 protein_g = ?, carbs_g = ?, fat_g = ?, fiber_g = ?,
                 vitamin_c_mg = ?, vitamin_d_mcg = ?, calcium_mg = ?, iron_mg = ?,
-                notes = ?
+                magnesium_mg = ?, potassium_mg = ?, sodium_mg = ?, zinc_mg = ?,
+                vitamin_b6_mg = ?, vitamin_b12_mcg = ?, omega3_g = ?, notes = ?
             WHERE id = ?
         """, (
             meal.meal_date, meal.meal_type, meal.name, meal.total_calories,
             meal.protein_g, meal.carbs_g, meal.fat_g, meal.fiber_g,
             meal.vitamin_c_mg, meal.vitamin_d_mcg, meal.calcium_mg, meal.iron_mg,
-            meal.notes, meal_id
+            meal.magnesium_mg, meal.potassium_mg, meal.sodium_mg, meal.zinc_mg,
+            meal.vitamin_b6_mg, meal.vitamin_b12_mcg, meal.omega3_g, meal.notes,
+            meal_id
         ))
 
         cursor.execute("SELECT * FROM meals WHERE id = ?", (meal_id,))

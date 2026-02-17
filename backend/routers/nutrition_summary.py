@@ -65,21 +65,36 @@ def get_daily_summary(
             'vitamin_d_mcg': sum(m['vitamin_d_mcg'] for m in meals),
             'calcium_mg': sum(m['calcium_mg'] for m in meals),
             'iron_mg': sum(m['iron_mg'] for m in meals),
+            'magnesium_mg': sum(m['magnesium_mg'] for m in meals),
+            'potassium_mg': sum(m['potassium_mg'] for m in meals),
+            'sodium_mg': sum(m['sodium_mg'] for m in meals),
+            'zinc_mg': sum(m['zinc_mg'] for m in meals),
+            'vitamin_b6_mg': sum(m['vitamin_b6_mg'] for m in meals),
+            'vitamin_b12_mcg': sum(m['vitamin_b12_mcg'] for m in meals),
+            'omega3_g': sum(m['omega3_g'] for m in meals),
         }
 
-        # Get activity points for the day
+        # Get activity points and calories burned for the day
         cursor.execute("""
-            SELECT COALESCE(SUM(a.points), 0) as total_points
+            SELECT
+                COALESCE(SUM(a.points), 0) as total_points,
+                COALESCE(SUM(a.calories_burned), 0) as total_calories_burned
             FROM activity_logs al
             JOIN activities a ON al.activity_id = a.id
             WHERE al.user_id = ? AND al.completed_at = ?
         """, (current_user.id, target_date))
-        activity_points = cursor.fetchone()['total_points']
+        activity_row = cursor.fetchone()
+        activity_points = activity_row['total_points']
+        calories_burned = activity_row['total_calories_burned']
 
         # Adjust calorie goal based on activity
         adjusted_calories = goals['base_calories']
         if goals['adjust_for_activity']:
-            adjusted_calories += int(activity_points * goals['calories_per_activity_point'])
+            # Use calories_burned if available, otherwise fall back to points * multiplier
+            if calories_burned > 0:
+                adjusted_calories += int(calories_burned)
+            else:
+                adjusted_calories += int(activity_points * goals['calories_per_activity_point'])
 
         # Calculate percentages
         percentages = {

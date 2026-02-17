@@ -418,5 +418,59 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_user ON weight_logs(user_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_date ON weight_logs(log_date)")
 
+        # Migration: add calories_burned to activities
+        cursor.execute("PRAGMA table_info(activities)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'calories_burned' not in columns:
+            cursor.execute("ALTER TABLE activities ADD COLUMN calories_burned INTEGER DEFAULT 0")
+            logger.info("Added calories_burned column to activities table")
+
+        # Migration: add additional micronutrients to nutrition_goals
+        cursor.execute("PRAGMA table_info(nutrition_goals)")
+        goals_columns = [col[1] for col in cursor.fetchall()]
+
+        new_goal_columns = [
+            ('magnesium_mg', 'INTEGER DEFAULT 400'),
+            ('potassium_mg', 'INTEGER DEFAULT 3500'),
+            ('sodium_mg', 'INTEGER DEFAULT 2300'),
+            ('zinc_mg', 'INTEGER DEFAULT 11'),
+            ('vitamin_b6_mg', 'REAL DEFAULT 1.7'),
+            ('vitamin_b12_mcg', 'REAL DEFAULT 2.4'),
+            ('omega3_g', 'REAL DEFAULT 1.6'),
+        ]
+
+        for col_name, col_def in new_goal_columns:
+            if col_name not in goals_columns:
+                cursor.execute(f"ALTER TABLE nutrition_goals ADD COLUMN {col_name} {col_def}")
+                logger.info(f"Added {col_name} column to nutrition_goals table")
+
+        # Migration: add additional micronutrients to meals
+        cursor.execute("PRAGMA table_info(meals)")
+        meals_columns = [col[1] for col in cursor.fetchall()]
+
+        new_meal_columns = [
+            ('magnesium_mg', 'REAL DEFAULT 0'),
+            ('potassium_mg', 'REAL DEFAULT 0'),
+            ('sodium_mg', 'REAL DEFAULT 0'),
+            ('zinc_mg', 'REAL DEFAULT 0'),
+            ('vitamin_b6_mg', 'REAL DEFAULT 0'),
+            ('vitamin_b12_mcg', 'REAL DEFAULT 0'),
+            ('omega3_g', 'REAL DEFAULT 0'),
+        ]
+
+        for col_name, col_def in new_meal_columns:
+            if col_name not in meals_columns:
+                cursor.execute(f"ALTER TABLE meals ADD COLUMN {col_name} {col_def}")
+                logger.info(f"Added {col_name} column to meals table")
+
+        # Migration: add additional micronutrients to food_items
+        cursor.execute("PRAGMA table_info(food_items)")
+        food_columns = [col[1] for col in cursor.fetchall()]
+
+        for col_name, col_def in new_meal_columns:  # Same columns as meals
+            if col_name not in food_columns:
+                cursor.execute(f"ALTER TABLE food_items ADD COLUMN {col_name} {col_def}")
+                logger.info(f"Added {col_name} column to food_items table")
+
         logger.info("Diet tracking tables created/verified")
         logger.info("Exercise tracking tables created/verified")

@@ -6,7 +6,7 @@ import { MealList } from './diet/MealList';
 import { WeightTracker } from './diet/WeightTracker';
 import { GoalsSettings } from './diet/GoalsSettings';
 
-type View = 'today' | 'history' | 'weight' | 'goals';
+type View = 'today' | 'weight' | 'goals';
 
 export function Diet() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -51,16 +51,16 @@ export function Diet() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="space-y-4">
       {/* Header with tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="flex border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="flex border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setView('today')}
             className={`px-6 py-3 font-medium transition-colors ${
               view === 'today'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             Today
@@ -69,8 +69,8 @@ export function Diet() {
             onClick={() => setView('weight')}
             className={`px-6 py-3 font-medium transition-colors ${
               view === 'weight'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             Weight
@@ -79,8 +79,8 @@ export function Diet() {
             onClick={() => setView('goals')}
             className={`px-6 py-3 font-medium transition-colors ${
               view === 'goals'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
           >
             Goals
@@ -89,24 +89,24 @@ export function Diet() {
 
         {/* Today View */}
         {view === 'today' && (
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-4">
             {/* Date Navigation */}
             <div className="flex items-center justify-between">
               <button
                 onClick={() => changeDate(-1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-800 dark:text-gray-100"
               >
                 ←
               </button>
               <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {formatDisplayDate(currentDate)}
                 </h2>
-                <p className="text-sm text-gray-500">{dateStr}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{dateStr}</p>
               </div>
               <button
                 onClick={() => changeDate(1)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-800 dark:text-gray-100"
               >
                 →
               </button>
@@ -115,7 +115,7 @@ export function Diet() {
             {currentDate.toDateString() !== new Date().toDateString() && (
               <button
                 onClick={goToToday}
-                className="w-full py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                className="w-full py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-sm"
               >
                 Go to Today
               </button>
@@ -127,7 +127,7 @@ export function Diet() {
             {/* Add Meal Button */}
             <button
               onClick={() => setShowMealForm(true)}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="w-full py-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
             >
               + Add Meal
             </button>
@@ -162,14 +162,14 @@ export function Diet() {
 
         {/* Weight View */}
         {view === 'weight' && (
-          <div className="p-6">
+          <div className="p-4">
             <WeightTracker />
           </div>
         )}
 
         {/* Goals View */}
         {view === 'goals' && (
-          <div className="p-6">
+          <div className="p-4">
             <GoalsSettings />
           </div>
         )}

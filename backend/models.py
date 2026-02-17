@@ -10,6 +10,7 @@ VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 class ActivityCreate(BaseModel):
     name: str
     points: int = 10
+    calories_burned: int = 0
     days_of_week: Optional[List[str]] = None  # None means every day
     category_id: Optional[int] = None
     completion_type: str = 'checkbox'  # 'checkbox', 'rating', or 'energy_quality'
@@ -86,6 +87,7 @@ class ActivityCreate(BaseModel):
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     points: Optional[int] = None
+    calories_burned: Optional[int] = None
     days_of_week: Optional[List[str]] = None
     category_id: Optional[int] = None
     completion_type: Optional[str] = None
@@ -171,6 +173,7 @@ class Activity(BaseModel):
     id: int
     name: str
     points: int
+    calories_burned: int
     is_active: bool
     days_of_week: Optional[List[str]]
     category_id: Optional[int]
@@ -814,6 +817,13 @@ class NutritionGoalsCreate(BaseModel):
     vitamin_d_mcg: Optional[int] = 20
     calcium_mg: Optional[int] = 1000
     iron_mg: Optional[int] = 18
+    magnesium_mg: Optional[int] = 400
+    potassium_mg: Optional[int] = 3500
+    sodium_mg: Optional[int] = 2300
+    zinc_mg: Optional[int] = 11
+    vitamin_b6_mg: Optional[float] = 1.7
+    vitamin_b12_mcg: Optional[float] = 2.4
+    omega3_g: Optional[float] = 1.6
     adjust_for_activity: bool = True
     calories_per_activity_point: float = 10.0
     target_weight: Optional[float] = None
@@ -837,6 +847,13 @@ class NutritionGoalsUpdate(BaseModel):
     vitamin_d_mcg: Optional[int] = None
     calcium_mg: Optional[int] = None
     iron_mg: Optional[int] = None
+    magnesium_mg: Optional[int] = None
+    potassium_mg: Optional[int] = None
+    sodium_mg: Optional[int] = None
+    zinc_mg: Optional[int] = None
+    vitamin_b6_mg: Optional[float] = None
+    vitamin_b12_mcg: Optional[float] = None
+    omega3_g: Optional[float] = None
     adjust_for_activity: Optional[bool] = None
     calories_per_activity_point: Optional[float] = None
     target_weight: Optional[float] = None
@@ -864,6 +881,13 @@ class NutritionGoals(BaseModel):
     vitamin_d_mcg: int
     calcium_mg: int
     iron_mg: int
+    magnesium_mg: int
+    potassium_mg: int
+    sodium_mg: int
+    zinc_mg: int
+    vitamin_b6_mg: float
+    vitamin_b12_mcg: float
+    omega3_g: float
     adjust_for_activity: bool
     calories_per_activity_point: float
     target_weight: Optional[float]
@@ -885,6 +909,13 @@ class MealCreate(BaseModel):
     vitamin_d_mcg: float = 0
     calcium_mg: float = 0
     iron_mg: float = 0
+    magnesium_mg: float = 0
+    potassium_mg: float = 0
+    sodium_mg: float = 0
+    zinc_mg: float = 0
+    vitamin_b6_mg: float = 0
+    vitamin_b12_mcg: float = 0
+    omega3_g: float = 0
     notes: Optional[str] = None
 
     @field_validator('meal_type')
@@ -920,6 +951,13 @@ class Meal(BaseModel):
     vitamin_d_mcg: float
     calcium_mg: float
     iron_mg: float
+    magnesium_mg: float
+    potassium_mg: float
+    sodium_mg: float
+    zinc_mg: float
+    vitamin_b6_mg: float
+    vitamin_b12_mcg: float
+    omega3_g: float
     notes: Optional[str]
     created_at: datetime
 
@@ -936,6 +974,13 @@ class FoodItemCreate(BaseModel):
     vitamin_d_mcg: float = 0
     calcium_mg: float = 0
     iron_mg: float = 0
+    magnesium_mg: float = 0
+    potassium_mg: float = 0
+    sodium_mg: float = 0
+    zinc_mg: float = 0
+    vitamin_b6_mg: float = 0
+    vitamin_b12_mcg: float = 0
+    omega3_g: float = 0
 
     @field_validator('name')
     @classmethod
@@ -972,6 +1017,13 @@ class FoodItem(BaseModel):
     vitamin_d_mcg: float
     calcium_mg: float
     iron_mg: float
+    magnesium_mg: float
+    potassium_mg: float
+    sodium_mg: float
+    zinc_mg: float
+    vitamin_b6_mg: float
+    vitamin_b12_mcg: float
+    omega3_g: float
     is_active: bool
     created_at: datetime
 

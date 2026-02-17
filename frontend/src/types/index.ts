@@ -17,6 +17,7 @@ export interface Activity {
   id: number;
   name: string;
   points: number;
+  calories_burned: number;
   is_active: boolean;
   days_of_week: DayOfWeek[] | null;
   category_id: number | null;
@@ -31,6 +32,7 @@ export interface Activity {
 export interface ActivityCreate {
   name: string;
   points: number;
+  calories_burned?: number;
   days_of_week?: DayOfWeek[] | null;
   category_id?: number | null;
   completion_type?: CompletionType;
@@ -385,6 +387,13 @@ export interface NutritionGoals {
   vitamin_d_mcg: number;
   calcium_mg: number;
   iron_mg: number;
+  magnesium_mg: number;
+  potassium_mg: number;
+  sodium_mg: number;
+  zinc_mg: number;
+  vitamin_b6_mg: number;
+  vitamin_b12_mcg: number;
+  omega3_g: number;
   adjust_for_activity: boolean;
   calories_per_activity_point: number;
   target_weight: number | null;
@@ -403,6 +412,13 @@ export interface NutritionGoalsUpdate {
   vitamin_d_mcg?: number;
   calcium_mg?: number;
   iron_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  sodium_mg?: number;
+  zinc_mg?: number;
+  vitamin_b6_mg?: number;
+  vitamin_b12_mcg?: number;
+  omega3_g?: number;
   adjust_for_activity?: boolean;
   calories_per_activity_point?: number;
   target_weight?: number | null;
@@ -424,6 +440,13 @@ export interface Meal {
   vitamin_d_mcg: number;
   calcium_mg: number;
   iron_mg: number;
+  magnesium_mg: number;
+  potassium_mg: number;
+  sodium_mg: number;
+  zinc_mg: number;
+  vitamin_b6_mg: number;
+  vitamin_b12_mcg: number;
+  omega3_g: number;
   notes: string | null;
   created_at: string;
 }
@@ -441,6 +464,13 @@ export interface MealCreate {
   vitamin_d_mcg?: number;
   calcium_mg?: number;
   iron_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  sodium_mg?: number;
+  zinc_mg?: number;
+  vitamin_b6_mg?: number;
+  vitamin_b12_mcg?: number;
+  omega3_g?: number;
   notes?: string | null;
 }
 
@@ -458,6 +488,13 @@ export interface FoodItem {
   vitamin_d_mcg: number;
   calcium_mg: number;
   iron_mg: number;
+  magnesium_mg: number;
+  potassium_mg: number;
+  sodium_mg: number;
+  zinc_mg: number;
+  vitamin_b6_mg: number;
+  vitamin_b12_mcg: number;
+  omega3_g: number;
   is_active: boolean;
   created_at: string;
 }
@@ -474,6 +511,13 @@ export interface FoodItemCreate {
   vitamin_d_mcg?: number;
   calcium_mg?: number;
   iron_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  sodium_mg?: number;
+  zinc_mg?: number;
+  vitamin_b6_mg?: number;
+  vitamin_b12_mcg?: number;
+  omega3_g?: number;
 }
 
 export interface WeightLog {
@@ -506,6 +550,13 @@ export interface DailyNutritionSummary {
     vitamin_d_mcg: number;
     calcium_mg: number;
     iron_mg: number;
+    magnesium_mg: number;
+    potassium_mg: number;
+    sodium_mg: number;
+    zinc_mg: number;
+    vitamin_b6_mg: number;
+    vitamin_b12_mcg: number;
+    omega3_g: number;
   };
   percentage: {
     calories: number;

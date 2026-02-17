@@ -61,12 +61,16 @@ def create_food_item(
             INSERT INTO food_items (
                 user_id, name, serving_size, calories,
                 protein_g, carbs_g, fat_g, fiber_g,
-                vitamin_c_mg, vitamin_d_mcg, calcium_mg, iron_mg
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                vitamin_c_mg, vitamin_d_mcg, calcium_mg, iron_mg,
+                magnesium_mg, potassium_mg, sodium_mg, zinc_mg,
+                vitamin_b6_mg, vitamin_b12_mcg, omega3_g
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             current_user.id, food.name, food.serving_size, food.calories,
             food.protein_g, food.carbs_g, food.fat_g, food.fiber_g,
-            food.vitamin_c_mg, food.vitamin_d_mcg, food.calcium_mg, food.iron_mg
+            food.vitamin_c_mg, food.vitamin_d_mcg, food.calcium_mg, food.iron_mg,
+            food.magnesium_mg, food.potassium_mg, food.sodium_mg, food.zinc_mg,
+            food.vitamin_b6_mg, food.vitamin_b12_mcg, food.omega3_g
         ))
         food_id = cursor.lastrowid
 
@@ -97,12 +101,16 @@ def update_food_item(
             UPDATE food_items SET
                 name = ?, serving_size = ?, calories = ?,
                 protein_g = ?, carbs_g = ?, fat_g = ?, fiber_g = ?,
-                vitamin_c_mg = ?, vitamin_d_mcg = ?, calcium_mg = ?, iron_mg = ?
+                vitamin_c_mg = ?, vitamin_d_mcg = ?, calcium_mg = ?, iron_mg = ?,
+                magnesium_mg = ?, potassium_mg = ?, sodium_mg = ?, zinc_mg = ?,
+                vitamin_b6_mg = ?, vitamin_b12_mcg = ?, omega3_g = ?
             WHERE id = ?
         """, (
             food.name, food.serving_size, food.calories,
             food.protein_g, food.carbs_g, food.fat_g, food.fiber_g,
             food.vitamin_c_mg, food.vitamin_d_mcg, food.calcium_mg, food.iron_mg,
+            food.magnesium_mg, food.potassium_mg, food.sodium_mg, food.zinc_mg,
+            food.vitamin_b6_mg, food.vitamin_b12_mcg, food.omega3_g,
             food_id
         ))
 

@@ -28,9 +28,9 @@ export function MealList({ meals, onDelete, onUpdate }: Props) {
 
   if (meals.length === 0) {
     return (
-      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <p className="text-gray-500 text-lg">No meals logged yet</p>
-        <p className="text-gray-400 text-sm mt-1">Click "Add Meal" to get started</p>
+      <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+        <p className="text-gray-500 dark:text-gray-400 text-lg">No meals logged yet</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Click "Add Meal" to get started</p>
       </div>
     );
   }
@@ -97,19 +97,19 @@ export function MealList({ meals, onDelete, onUpdate }: Props) {
       )}
 
       {sortedMealTypes.map((mealType) => (
-        <div key={mealType} className="bg-white rounded-lg border border-gray-200">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-            <h4 className="font-semibold text-gray-900">
+        <div key={mealType} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <h4 className="font-semibold text-gray-900 dark:text-gray-100">
               {MEAL_TYPE_LABELS[mealType as keyof typeof MEAL_TYPE_LABELS]}
             </h4>
           </div>
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {mealsByType[mealType].map((meal) => (
               <div key={meal.id} className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h5 className="font-medium text-gray-900">{meal.name}</h5>
-                    <div className="flex gap-4 mt-2 text-sm text-gray-600">
+                    <h5 className="font-medium text-gray-900 dark:text-gray-100">{meal.name}</h5>
+                    <div className="flex gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                       <span>{meal.total_calories} cal</span>
                       <span>P: {meal.protein_g}g</span>
                       <span>C: {meal.carbs_g}g</span>
@@ -117,24 +117,33 @@ export function MealList({ meals, onDelete, onUpdate }: Props) {
                       {meal.fiber_g > 0 && <span>Fiber: {meal.fiber_g}g</span>}
                     </div>
                     {meal.notes && (
-                      <p className="mt-2 text-sm text-gray-500 italic">{meal.notes}</p>
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 italic">{meal.notes}</p>
                     )}
 
                     {/* Expandable micronutrients */}
-                    {(meal.vitamin_c_mg > 0 || meal.vitamin_d_mcg > 0 || meal.calcium_mg > 0 || meal.iron_mg > 0) && (
+                    {(meal.vitamin_c_mg > 0 || meal.vitamin_d_mcg > 0 || meal.calcium_mg > 0 || meal.iron_mg > 0 ||
+                      meal.magnesium_mg > 0 || meal.potassium_mg > 0 || meal.sodium_mg > 0 || meal.zinc_mg > 0 ||
+                      meal.vitamin_b6_mg > 0 || meal.vitamin_b12_mcg > 0 || meal.omega3_g > 0) && (
                       <div className="mt-2">
                         <button
                           onClick={() => setExpandedMeal(expandedMeal === meal.id ? null : meal.id)}
-                          className="text-xs text-blue-600 hover:text-blue-700"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         >
                           {expandedMeal === meal.id ? '− Hide' : '+ Show'} micronutrients
                         </button>
                         {expandedMeal === meal.id && (
-                          <div className="mt-2 flex gap-3 text-xs text-gray-600">
+                          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-600 dark:text-gray-400">
                             {meal.vitamin_c_mg > 0 && <span>Vit C: {meal.vitamin_c_mg}mg</span>}
                             {meal.vitamin_d_mcg > 0 && <span>Vit D: {meal.vitamin_d_mcg}mcg</span>}
                             {meal.calcium_mg > 0 && <span>Calcium: {meal.calcium_mg}mg</span>}
                             {meal.iron_mg > 0 && <span>Iron: {meal.iron_mg}mg</span>}
+                            {meal.magnesium_mg > 0 && <span>Mag: {meal.magnesium_mg}mg</span>}
+                            {meal.potassium_mg > 0 && <span>Pot: {meal.potassium_mg}mg</span>}
+                            {meal.sodium_mg > 0 && <span>Sodium: {meal.sodium_mg}mg</span>}
+                            {meal.zinc_mg > 0 && <span>Zinc: {meal.zinc_mg}mg</span>}
+                            {meal.vitamin_b6_mg > 0 && <span>B6: {meal.vitamin_b6_mg}mg</span>}
+                            {meal.vitamin_b12_mcg > 0 && <span>B12: {meal.vitamin_b12_mcg}mcg</span>}
+                            {meal.omega3_g > 0 && <span>Omega-3: {meal.omega3_g}g</span>}
                           </div>
                         )}
                       </div>
@@ -144,7 +153,7 @@ export function MealList({ meals, onDelete, onUpdate }: Props) {
                   <div className="flex gap-2 ml-4">
                     <button
                       onClick={() => handleEdit(meal)}
-                      className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       Edit
                     </button>
@@ -154,7 +163,7 @@ export function MealList({ meals, onDelete, onUpdate }: Props) {
                           onDelete(meal.id);
                         }
                       }}
-                      className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="px-3 py-1 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       Delete
                     </button>
