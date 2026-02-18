@@ -49,7 +49,10 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
   };
 
   const createTemplate = async () => {
-    if (!name.trim() || !calories) return;
+    if (!name.trim() || !calories) {
+      alert('Please enter a template name and calories');
+      return;
+    }
 
     const template: MealTemplateCreate = {
       name: name.trim(),
@@ -74,9 +77,11 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
       setCarbs('');
       setFat('');
       setShowCreateForm(false);
-      fetchTemplates();
+      await fetchTemplates();
+      alert('Template created successfully!');
     } catch (err) {
       console.error('Failed to create template:', err);
+      alert(`Failed to create template: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
