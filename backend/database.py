@@ -418,6 +418,23 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_user ON weight_logs(user_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_logs_date ON weight_logs(log_date)")
 
+        # Create sleep_logs table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sleep_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                log_date DATE NOT NULL,
+                hours_slept REAL NOT NULL,
+                quality_rating TEXT CHECK(quality_rating IN ('poor', 'fair', 'good', 'excellent')) DEFAULT NULL,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                UNIQUE(user_id, log_date)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sleep_logs_user ON sleep_logs(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sleep_logs_date ON sleep_logs(log_date)")
+
         # Migration: add calories_burned to activities
         cursor.execute("PRAGMA table_info(activities)")
         columns = [col[1] for col in cursor.fetchall()]

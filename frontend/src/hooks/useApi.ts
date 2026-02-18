@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary, SpecialDay, SpecialDayCreate, NutritionGoals, NutritionGoalsUpdate, Meal, MealCreate, FoodItem, FoodItemCreate, WeightLog, WeightLogCreate, DailyNutritionSummary } from '../types';
+import { Activity, ActivityCreate, Log, LogCreate, Score, HistoryEntry, Category, CategoryCreate, CategoryUpdate, CategorySummary, SpecialDay, SpecialDayCreate, NutritionGoals, NutritionGoalsUpdate, Meal, MealCreate, FoodItem, FoodItemCreate, WeightLog, WeightLogCreate, SleepLog, SleepLogCreate, DailyNutritionSummary } from '../types';
 import { useMockData as useMockDataContext } from '../contexts/MockDataContext';
 import {
   generateMockActivities,
@@ -639,6 +639,50 @@ export function useWeightLogs(days: number = 90) {
   }, [useMockData, fetchWeightLogs]);
 
   return { weightLogs, loading, fetchWeightLogs, logWeight, deleteWeightLog };
+}
+
+export function useSleepLogs(days: number = 30) {
+  const { useMockData } = useMockDataContext();
+  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchSleepLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      if (useMockData) {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setSleepLogs([]);
+      } else {
+        const data = await fetchApi<SleepLog[]>(`/sleep-logs?days=${days}`);
+        setSleepLogs(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [days, useMockData]);
+
+  const logSleep = useCallback(async (log: SleepLogCreate) => {
+    if (useMockData) {
+      console.log('Mock mode: Log sleep ignored', log);
+      return;
+    }
+    await fetchApi<SleepLog>('/sleep-logs', {
+      method: 'POST',
+      body: JSON.stringify(log),
+    });
+    await fetchSleepLogs();
+  }, [useMockData, fetchSleepLogs]);
+
+  const deleteSleepLog = useCallback(async (id: number) => {
+    if (useMockData) {
+      console.log('Mock mode: Delete sleep log ignored', id);
+      return;
+    }
+    await fetchApi(`/sleep-logs/${id}`, { method: 'DELETE' });
+    await fetchSleepLogs();
+  }, [useMockData, fetchSleepLogs]);
+
+  return { sleepLogs, loading, fetchSleepLogs, logSleep, deleteSleepLog };
 }
 
 export function useNutritionSummary(targetDate: string) {

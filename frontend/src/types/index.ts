@@ -537,6 +537,25 @@ export interface WeightLogCreate {
   notes?: string | null;
 }
 
+export type SleepQuality = 'poor' | 'fair' | 'good' | 'excellent';
+
+export interface SleepLog {
+  id: number;
+  user_id: number;
+  log_date: string;
+  hours_slept: number;
+  quality_rating: SleepQuality | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SleepLogCreate {
+  log_date: string;
+  hours_slept: number;
+  quality_rating?: SleepQuality | null;
+  notes?: string | null;
+}
+
 export interface DailyNutritionSummary {
   date: string;
   goals: NutritionGoals;

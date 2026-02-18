@@ -1061,6 +1061,40 @@ class WeightLog(BaseModel):
     created_at: datetime
 
 
+# Sleep Logs
+class SleepLogCreate(BaseModel):
+    log_date: date
+    hours_slept: float
+    quality_rating: Optional[str] = None
+    notes: Optional[str] = None
+
+    @field_validator('hours_slept')
+    @classmethod
+    def validate_hours(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError('Hours slept cannot be negative')
+        if v > 24:
+            raise ValueError('Hours slept cannot exceed 24')
+        return v
+
+    @field_validator('quality_rating')
+    @classmethod
+    def validate_quality(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ['poor', 'fair', 'good', 'excellent']:
+            raise ValueError('Quality rating must be poor, fair, good, or excellent')
+        return v
+
+
+class SleepLog(BaseModel):
+    id: int
+    user_id: int
+    log_date: date
+    hours_slept: float
+    quality_rating: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+
 class DailyNutritionSummary(BaseModel):
     date: date
     goals: NutritionGoals

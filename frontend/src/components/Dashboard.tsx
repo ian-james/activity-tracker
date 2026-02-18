@@ -3,6 +3,8 @@ import { useHistory, useCategorySummary } from '../hooks/useApi';
 import { CalendarGrid } from './CalendarGrid';
 import { Streaks } from './Streaks';
 import { Analytics } from './Analytics';
+import { SleepDashboard } from './dashboard/SleepDashboard';
+import { DietDashboard } from './dashboard/DietDashboard';
 
 type TimeRange = 7 | 14 | 28;
 type DashboardView = 'overview' | 'streaks' | 'analytics';
@@ -116,6 +118,12 @@ export function Dashboard() {
             ) : (
               <CalendarGrid history={history} timeRange={timeRange} />
             )}
+          </div>
+
+          {/* Sleep and Diet Sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SleepDashboard />
+            <DietDashboard />
           </div>
 
           {/* Category Progress */}

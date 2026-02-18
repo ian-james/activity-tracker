@@ -13,7 +13,7 @@ from routers import (
     export, analytics, exercises, workouts,
     preferences, templates, todos, special_days,
     email_notifications, nutrition_goals, meals,
-    food_items, weight_logs, nutrition_summary
+    food_items, weight_logs, nutrition_summary, sleep_logs
 )
 from services.scheduler import start_scheduler, stop_scheduler
 
@@ -64,6 +64,7 @@ app.include_router(meals.router)
 app.include_router(food_items.router)
 app.include_router(weight_logs.router)
 app.include_router(nutrition_summary.router)
+app.include_router(sleep_logs.router)
 
 @app.get("/")
 def root():
