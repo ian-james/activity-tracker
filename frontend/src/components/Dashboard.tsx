@@ -116,7 +116,9 @@ export function Dashboard() {
             ) : history.length === 0 ? (
               <div className="text-center text-gray-500 dark:text-gray-400 py-8">No data yet</div>
             ) : (
-              <CalendarGrid history={history} timeRange={timeRange} />
+              <div className="flex justify-center">
+                <CalendarGrid history={history} timeRange={timeRange} />
+              </div>
             )}
           </div>
 
