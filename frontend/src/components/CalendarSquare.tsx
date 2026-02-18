@@ -32,13 +32,13 @@ export function CalendarSquare({ entry }: CalendarSquareProps) {
     >
       {/* Square */}
       <div
-        className={`aspect-square rounded-lg transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${getSquareColor(
+        className={`aspect-square rounded transition-all cursor-pointer hover:scale-105 hover:shadow-lg ${getSquareColor(
           entry.percentage
         )}`}
       >
         {/* Show percentage inside square */}
         <div className="flex items-center justify-center h-full">
-          <span className="text-white text-xs font-semibold">
+          <span className="text-white text-[10px] font-semibold">
             {entry.percentage}%
           </span>
         </div>
@@ -46,7 +46,7 @@ export function CalendarSquare({ entry }: CalendarSquareProps) {
 
       {/* Hover Tooltip */}
       {showTooltip && (
-        <div className="absolute z-10 top-full mt-2 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap">
+        <div className="absolute z-10 top-full mt-1 left-1/2 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded px-2 py-1.5 shadow-lg whitespace-nowrap">
           <div className="font-semibold">{formatDate(entry.date)}</div>
           <div>{entry.percentage}% complete</div>
           <div>
