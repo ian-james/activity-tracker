@@ -324,7 +324,8 @@ export interface ExerciseProgressResponse {
 
 // Todo Types
 
-export type TodoCategory = 'personal' | 'professional';
+export type TodoCategory = 'personal' | 'professional' | 'development' | 'family';
+export type TodoTimeFrame = 'short_term' | 'long_term';
 
 export interface Todo {
   id: number;
@@ -334,6 +335,7 @@ export interface Todo {
   completed_at: string | null;
   order_index: number;
   category: TodoCategory;
+  time_frame: TodoTimeFrame;
   created_at: string;
   updated_at: string;
 }
@@ -342,6 +344,7 @@ export interface TodoCreate {
   text: string;
   order_index?: number;
   category?: TodoCategory;
+  time_frame?: TodoTimeFrame;
 }
 
 export interface TodoUpdate {
@@ -349,6 +352,7 @@ export interface TodoUpdate {
   is_completed?: boolean;
   order_index?: number;
   category?: TodoCategory;
+  time_frame?: TodoTimeFrame;
 }
 
 // Special Day Types

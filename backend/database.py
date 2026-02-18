@@ -311,6 +311,18 @@ def init_db():
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_category ON todos(category)")
             logger.info("Added category column to todos table")
 
+        # Migration: add time_frame column to todos if it doesn't exist
+        cursor.execute("PRAGMA table_info(todos)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'time_frame' not in columns:
+            cursor.execute("ALTER TABLE todos ADD COLUMN time_frame TEXT NOT NULL DEFAULT 'short_term' CHECK(time_frame IN ('short_term', 'long_term'))")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_todos_time_frame ON todos(time_frame)")
+            logger.info("Added time_frame column to todos table")
+
+        # Migration: update category constraint to include development and family
+        # Note: SQLite doesn't support modifying CHECK constraints, so we'll handle validation in the API layer
+        # The new categories (development, family) will be enforced by Pydantic models
+
         # Create nutrition_goals table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS nutrition_goals (

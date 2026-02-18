@@ -718,7 +718,8 @@ class TemplateExercise(BaseModel):
 class TodoCreate(BaseModel):
     text: str
     order_index: int = 0
-    category: str = 'personal'  # 'personal' or 'professional'
+    category: str = 'personal'  # 'personal', 'professional', 'development', 'family'
+    time_frame: str = 'short_term'  # 'short_term' or 'long_term'
 
     @field_validator('text')
     @classmethod
@@ -733,8 +734,15 @@ class TodoCreate(BaseModel):
     @field_validator('category')
     @classmethod
     def validate_category(cls, v: str) -> str:
-        if v not in ('personal', 'professional'):
-            raise ValueError('Category must be either "personal" or "professional"')
+        if v not in ('personal', 'professional', 'development', 'family'):
+            raise ValueError('Category must be one of: personal, professional, development, family')
+        return v
+
+    @field_validator('time_frame')
+    @classmethod
+    def validate_time_frame(cls, v: str) -> str:
+        if v not in ('short_term', 'long_term'):
+            raise ValueError('Time frame must be either "short_term" or "long_term"')
         return v
 
 
@@ -743,6 +751,7 @@ class TodoUpdate(BaseModel):
     is_completed: Optional[bool] = None
     order_index: Optional[int] = None
     category: Optional[str] = None
+    time_frame: Optional[str] = None
 
     @field_validator('text')
     @classmethod
@@ -761,8 +770,17 @@ class TodoUpdate(BaseModel):
     def validate_category(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
-        if v not in ('personal', 'professional'):
-            raise ValueError('Category must be either "personal" or "professional"')
+        if v not in ('personal', 'professional', 'development', 'family'):
+            raise ValueError('Category must be one of: personal, professional, development, family')
+        return v
+
+    @field_validator('time_frame')
+    @classmethod
+    def validate_time_frame(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ('short_term', 'long_term'):
+            raise ValueError('Time frame must be either "short_term" or "long_term"')
         return v
 
 
@@ -774,6 +792,7 @@ class Todo(BaseModel):
     completed_at: Optional[datetime]
     order_index: int
     category: str
+    time_frame: str
     created_at: datetime
     updated_at: datetime
 
