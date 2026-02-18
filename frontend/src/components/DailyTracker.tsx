@@ -198,22 +198,24 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
       // If already completed, uncomplete it
       onToggle(activity.id, false, logId);
     } else {
-      // Initialize notes with activity template notes
-      setLogNotes(activity.notes || '');
-      setNotesFor(activity.id);
-      setShowNotesInput(false); // Don't show notes by default
       // Branch based on completion type
       if (activity.completion_type === 'checkbox') {
-        // Simple checkbox - show notes input
-        setSelectingEnergyFor(null);
-        setSelectingRatingFor(null);
-      } else if (activity.completion_type === 'rating') {
-        // Show rating selector
-        setSelectingRatingFor(activity.id);
+        // Simple checkbox - complete immediately without dialog
+        onToggle(activity.id, true, undefined, null, null, null, null);
       } else {
-        // energy_quality - show energy level selector
-        setSelectingEnergyFor(activity.id);
-        setSelectedEnergy(null);
+        // Initialize notes with activity template notes
+        setLogNotes(activity.notes || '');
+        setNotesFor(activity.id);
+        setShowNotesInput(false); // Don't show notes by default
+
+        if (activity.completion_type === 'rating') {
+          // Show rating selector
+          setSelectingRatingFor(activity.id);
+        } else {
+          // energy_quality - show energy level selector
+          setSelectingEnergyFor(activity.id);
+          setSelectedEnergy(null);
+        }
       }
     }
   };
