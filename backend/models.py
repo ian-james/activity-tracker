@@ -1091,8 +1091,8 @@ class SleepLogCreate(BaseModel):
     @field_validator('quality_rating')
     @classmethod
     def validate_quality(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and v not in ['bad', 'average', 'good']:
-            raise ValueError('Quality rating must be bad, average, or good')
+        if v is not None and v not in ['low', 'medium', 'high']:
+            raise ValueError('Quality rating must be low, medium, or high')
         return v
 
 

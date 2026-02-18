@@ -539,7 +539,7 @@ export interface WeightLogCreate {
   notes?: string | null;
 }
 
-export type SleepQuality = 'bad' | 'average' | 'good';
+export type SleepQuality = 'low' | 'medium' | 'high';
 
 export interface SleepLog {
   id: number;
