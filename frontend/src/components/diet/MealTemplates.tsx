@@ -38,7 +38,7 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
       }
 
       const data = await fetchApi<MealTemplate[]>(
-        `/api/meal-templates?${params.toString()}`
+        `/meal-templates?${params.toString()}`
       );
       setTemplates(data);
     } catch (err) {
@@ -65,7 +65,7 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
     };
 
     try {
-      await fetchApi('/api/meal-templates', {
+      await fetchApi('/meal-templates', {
         method: 'POST',
         body: JSON.stringify(template),
       });
@@ -87,7 +87,7 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
 
   const toggleFavorite = async (templateId: number) => {
     try {
-      await fetchApi(`/api/meal-templates/${templateId}/toggle-favorite`, {
+      await fetchApi(`/meal-templates/${templateId}/toggle-favorite`, {
         method: 'POST',
       });
       fetchTemplates();
@@ -100,7 +100,7 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
     if (!confirm('Delete this meal template?')) return;
 
     try {
-      await fetchApi(`/api/meal-templates/${templateId}`, {
+      await fetchApi(`/meal-templates/${templateId}`, {
         method: 'DELETE',
       });
       fetchTemplates();
@@ -116,7 +116,7 @@ export function MealTemplates({ onUseTemplate, date }: MealTemplatesProps) {
     }
 
     try {
-      await fetchApi(`/api/meal-templates/${templateId}/use?meal_date=${date}`, {
+      await fetchApi(`/meal-templates/${templateId}/use?meal_date=${date}`, {
         method: 'POST',
       });
       if (onUseTemplate) {
