@@ -68,28 +68,25 @@ export function SleepDashboard() {
   const getQualityColor = (quality: SleepQuality | null) => {
     if (!quality) return 'text-gray-500 dark:text-gray-400';
     switch (quality) {
-      case 'excellent': return 'text-green-600 dark:text-green-400';
-      case 'good': return 'text-blue-600 dark:text-blue-400';
-      case 'fair': return 'text-yellow-600 dark:text-yellow-400';
-      case 'poor': return 'text-red-600 dark:text-red-400';
+      case 'good': return 'text-green-600 dark:text-green-400';
+      case 'average': return 'text-yellow-600 dark:text-yellow-400';
+      case 'bad': return 'text-red-600 dark:text-red-400';
     }
   };
 
   const getQualityBg = (quality: SleepQuality) => {
     switch (quality) {
-      case 'excellent': return 'bg-green-100 dark:bg-green-900/30';
-      case 'good': return 'bg-blue-100 dark:bg-blue-900/30';
-      case 'fair': return 'bg-yellow-100 dark:bg-yellow-900/30';
-      case 'poor': return 'bg-red-100 dark:bg-red-900/30';
+      case 'good': return 'bg-green-100 dark:bg-green-900/30';
+      case 'average': return 'bg-yellow-100 dark:bg-yellow-900/30';
+      case 'bad': return 'bg-red-100 dark:bg-red-900/30';
     }
   };
 
   const getQualityBarBg = (quality: SleepQuality) => {
     switch (quality) {
-      case 'excellent': return 'bg-green-500 dark:bg-green-400';
-      case 'good': return 'bg-blue-500 dark:bg-blue-400';
-      case 'fair': return 'bg-yellow-500 dark:bg-yellow-400';
-      case 'poor': return 'bg-red-500 dark:bg-red-400';
+      case 'good': return 'bg-green-500 dark:bg-green-400';
+      case 'average': return 'bg-yellow-500 dark:bg-yellow-400';
+      case 'bad': return 'bg-red-500 dark:bg-red-400';
     }
   };
 
@@ -156,15 +153,15 @@ export function SleepDashboard() {
               <>
                 <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {Math.round(((qualityCounts.good || 0) + (qualityCounts.excellent || 0)) / totalWithQuality * 100)}%
+                    {Math.round((qualityCounts.good || 0) / totalWithQuality * 100)}%
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Good+ Quality</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Good Quality</div>
                 </div>
                 <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center">
                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {qualityCounts.excellent || 0}
+                    {qualityCounts.bad || 0}
                   </div>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">Excellent Nights</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Bad Nights</div>
                 </div>
               </>
             )}
@@ -185,7 +182,7 @@ export function SleepDashboard() {
                 Sleep Quality Distribution
               </h4>
               <div className="space-y-2">
-                {(['excellent', 'good', 'fair', 'poor'] as SleepQuality[]).map((quality) => {
+                {(['good', 'average', 'bad'] as SleepQuality[]).map((quality) => {
                   const count = qualityCounts[quality] || 0;
                   const percentage = (count / totalWithQuality) * 100;
 
@@ -236,10 +233,9 @@ export function SleepDashboard() {
                   {log.quality_rating && (
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getQualityBg(log.quality_rating as SleepQuality)} ${getQualityColor(log.quality_rating as SleepQuality)}`}>
-                        {log.quality_rating === 'excellent' && '⭐ '}
                         {log.quality_rating === 'good' && '✓ '}
-                        {log.quality_rating === 'fair' && '~ '}
-                        {log.quality_rating === 'poor' && '✗ '}
+                        {log.quality_rating === 'average' && '~ '}
+                        {log.quality_rating === 'bad' && '✗ '}
                         {log.quality_rating.charAt(0).toUpperCase() + log.quality_rating.slice(1)} Sleep
                       </span>
                     </div>

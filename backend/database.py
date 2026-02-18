@@ -425,7 +425,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 log_date DATE NOT NULL,
                 hours_slept REAL NOT NULL,
-                quality_rating TEXT CHECK(quality_rating IN ('poor', 'fair', 'good', 'excellent')) DEFAULT NULL,
+                quality_rating TEXT CHECK(quality_rating IN ('bad', 'average', 'good')) DEFAULT NULL,
                 notes TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
