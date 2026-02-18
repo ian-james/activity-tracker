@@ -38,7 +38,7 @@ export function CalendarSquare({ entry }: CalendarSquareProps) {
       >
         {/* Show percentage inside square */}
         <div className="flex items-center justify-center h-full">
-          <span className="text-white text-[10px] font-semibold">
+          <span className="text-white text-xs font-semibold">
             {entry.percentage}%
           </span>
         </div>
