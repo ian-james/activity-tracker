@@ -496,5 +496,85 @@ def init_db():
                 cursor.execute(f"ALTER TABLE food_items ADD COLUMN {col_name} {col_def}")
                 logger.info(f"Added {col_name} column to food_items table")
 
+        # Create water_logs table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS water_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                log_date DATE NOT NULL,
+                amount_oz REAL NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                UNIQUE(user_id, log_date)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_water_logs_user ON water_logs(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_water_logs_date ON water_logs(log_date)")
+
+        # Create water_goals table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS water_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL UNIQUE,
+                daily_goal_oz REAL NOT NULL DEFAULT 64,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_water_goals_user ON water_goals(user_id)")
+
+        # Create mood_logs table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS mood_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                log_date DATE NOT NULL,
+                log_time TIME NOT NULL,
+                mood_rating INTEGER NOT NULL CHECK(mood_rating BETWEEN 1 AND 10),
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_mood_logs_user ON mood_logs(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_mood_logs_date ON mood_logs(log_date)")
+
+        # Create meal_templates table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS meal_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                meal_type TEXT NOT NULL CHECK(meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
+                total_calories REAL NOT NULL,
+                protein_g REAL NOT NULL DEFAULT 0,
+                carbs_g REAL NOT NULL DEFAULT 0,
+                fat_g REAL NOT NULL DEFAULT 0,
+                fiber_g REAL DEFAULT 0,
+                vitamin_c_mg REAL DEFAULT 0,
+                vitamin_d_mcg REAL DEFAULT 0,
+                calcium_mg REAL DEFAULT 0,
+                iron_mg REAL DEFAULT 0,
+                magnesium_mg REAL DEFAULT 0,
+                potassium_mg REAL DEFAULT 0,
+                sodium_mg REAL DEFAULT 0,
+                zinc_mg REAL DEFAULT 0,
+                vitamin_b6_mg REAL DEFAULT 0,
+                vitamin_b12_mcg REAL DEFAULT 0,
+                omega3_g REAL DEFAULT 0,
+                is_favorite INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                use_count INTEGER NOT NULL DEFAULT 0,
+                last_used_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meal_templates_user ON meal_templates(user_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meal_templates_favorite ON meal_templates(user_id, is_favorite)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meal_templates_active ON meal_templates(user_id, is_active)")
+
         logger.info("Diet tracking tables created/verified")
         logger.info("Exercise tracking tables created/verified")
+        logger.info("Water, mood, and meal template tables created/verified")

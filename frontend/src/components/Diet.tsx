@@ -6,8 +6,9 @@ import { MealList } from './diet/MealList';
 import { WeightTracker } from './diet/WeightTracker';
 import { GoalsSettings } from './diet/GoalsSettings';
 import { SupplementLogger } from './diet/SupplementLogger';
+import { MealTemplates } from './diet/MealTemplates';
 
-type View = 'today' | 'weight' | 'goals';
+type View = 'today' | 'weight' | 'goals' | 'templates';
 
 export function Diet() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -85,6 +86,16 @@ export function Diet() {
             }`}
           >
             Goals
+          </button>
+          <button
+            onClick={() => setView('templates')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              view === 'templates'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+            }`}
+          >
+            Templates
           </button>
         </div>
 
@@ -181,6 +192,19 @@ export function Diet() {
         {view === 'goals' && (
           <div className="p-4">
             <GoalsSettings />
+          </div>
+        )}
+
+        {/* Templates View */}
+        {view === 'templates' && (
+          <div className="p-4">
+            <MealTemplates
+              date={dateStr}
+              onUseTemplate={async () => {
+                await fetchMeals();
+                await fetchSummary();
+              }}
+            />
           </div>
         )}
       </div>

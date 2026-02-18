@@ -24,7 +24,7 @@ class ApiException extends Error {
   }
 }
 
-async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+export async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   try {
     const res = await fetch(`${API_BASE}${url}`, {
       ...options,

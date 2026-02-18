@@ -1114,3 +1114,223 @@ class DailyNutritionSummary(BaseModel):
     meals: List[Meal]
     activity_points: int
     adjusted_calorie_goal: int
+
+
+# Water Tracking Models
+
+class WaterGoalCreate(BaseModel):
+    daily_goal_oz: float = 64
+
+    @field_validator('daily_goal_oz')
+    @classmethod
+    def validate_goal(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('Daily goal must be positive')
+        if v > 500:
+            raise ValueError('Daily goal must be less than 500 oz')
+        return v
+
+
+class WaterGoalUpdate(BaseModel):
+    daily_goal_oz: Optional[float] = None
+
+    @field_validator('daily_goal_oz')
+    @classmethod
+    def validate_goal(cls, v: Optional[float]) -> Optional[float]:
+        if v is None:
+            return v
+        if v <= 0:
+            raise ValueError('Daily goal must be positive')
+        if v > 500:
+            raise ValueError('Daily goal must be less than 500 oz')
+        return v
+
+
+class WaterGoal(BaseModel):
+    id: int
+    user_id: int
+    daily_goal_oz: float
+    created_at: datetime
+    updated_at: datetime
+
+
+class WaterLogCreate(BaseModel):
+    log_date: date
+    amount_oz: float
+
+    @field_validator('amount_oz')
+    @classmethod
+    def validate_amount(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('Amount must be positive')
+        if v > 500:
+            raise ValueError('Amount must be less than 500 oz')
+        return v
+
+
+class WaterLogUpdate(BaseModel):
+    amount_oz: float
+
+    @field_validator('amount_oz')
+    @classmethod
+    def validate_amount(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('Amount must be positive')
+        if v > 500:
+            raise ValueError('Amount must be less than 500 oz')
+        return v
+
+
+class WaterLog(BaseModel):
+    id: int
+    user_id: int
+    log_date: date
+    amount_oz: float
+    created_at: datetime
+
+
+# Mood Tracking Models
+
+class MoodLogCreate(BaseModel):
+    log_date: date
+    log_time: str  # TIME in HH:MM:SS format
+    mood_rating: int
+    notes: Optional[str] = None
+
+    @field_validator('mood_rating')
+    @classmethod
+    def validate_mood(cls, v: int) -> int:
+        if v < 1 or v > 10:
+            raise ValueError('Mood rating must be between 1 and 10')
+        return v
+
+    @field_validator('notes')
+    @classmethod
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if len(v) > 500:
+            raise ValueError('Notes cannot exceed 500 characters')
+        return v
+
+
+class MoodLog(BaseModel):
+    id: int
+    user_id: int
+    log_date: date
+    log_time: str
+    mood_rating: int
+    notes: Optional[str]
+    created_at: datetime
+
+
+# Meal Template Models
+
+class MealTemplateCreate(BaseModel):
+    name: str
+    meal_type: str
+    total_calories: float
+    protein_g: float = 0
+    carbs_g: float = 0
+    fat_g: float = 0
+    fiber_g: float = 0
+    vitamin_c_mg: float = 0
+    vitamin_d_mcg: float = 0
+    calcium_mg: float = 0
+    iron_mg: float = 0
+    magnesium_mg: float = 0
+    potassium_mg: float = 0
+    sodium_mg: float = 0
+    zinc_mg: float = 0
+    vitamin_b6_mg: float = 0
+    vitamin_b12_mcg: float = 0
+    omega3_g: float = 0
+    is_favorite: bool = False
+
+    @field_validator('meal_type')
+    @classmethod
+    def validate_meal_type(cls, v: str) -> str:
+        if v not in ['breakfast', 'lunch', 'dinner', 'snack']:
+            raise ValueError('Invalid meal type')
+        return v
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 200:
+            raise ValueError('Name cannot exceed 200 characters')
+        return v
+
+
+class MealTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    meal_type: Optional[str] = None
+    total_calories: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+    fiber_g: Optional[float] = None
+    vitamin_c_mg: Optional[float] = None
+    vitamin_d_mcg: Optional[float] = None
+    calcium_mg: Optional[float] = None
+    iron_mg: Optional[float] = None
+    magnesium_mg: Optional[float] = None
+    potassium_mg: Optional[float] = None
+    sodium_mg: Optional[float] = None
+    zinc_mg: Optional[float] = None
+    vitamin_b6_mg: Optional[float] = None
+    vitamin_b12_mcg: Optional[float] = None
+    omega3_g: Optional[float] = None
+    is_favorite: Optional[bool] = None
+
+    @field_validator('meal_type')
+    @classmethod
+    def validate_meal_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if v not in ['breakfast', 'lunch', 'dinner', 'snack']:
+            raise ValueError('Invalid meal type')
+        return v
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError('Name cannot be empty')
+        if len(v) > 200:
+            raise ValueError('Name cannot exceed 200 characters')
+        return v
+
+
+class MealTemplate(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    meal_type: str
+    total_calories: float
+    protein_g: float
+    carbs_g: float
+    fat_g: float
+    fiber_g: float
+    vitamin_c_mg: float
+    vitamin_d_mcg: float
+    calcium_mg: float
+    iron_mg: float
+    magnesium_mg: float
+    potassium_mg: float
+    sodium_mg: float
+    zinc_mg: float
+    vitamin_b6_mg: float
+    vitamin_b12_mcg: float
+    omega3_g: float
+    is_favorite: bool
+    is_active: bool
+    use_count: int
+    last_used_at: Optional[datetime]
+    created_at: datetime

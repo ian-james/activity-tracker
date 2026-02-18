@@ -590,3 +590,138 @@ export interface DailyNutritionSummary {
   activity_points: number;
   adjusted_calorie_goal: number;
 }
+
+// Water Tracking Types
+
+export interface WaterGoal {
+  id: number;
+  user_id: number;
+  daily_goal_oz: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WaterGoalUpdate {
+  daily_goal_oz?: number;
+}
+
+export interface WaterLog {
+  id: number;
+  user_id: number;
+  log_date: string;
+  amount_oz: number;
+  created_at: string;
+}
+
+export interface WaterLogCreate {
+  log_date: string;
+  amount_oz: number;
+}
+
+// Mood Tracking Types
+
+export interface MoodLog {
+  id: number;
+  user_id: number;
+  log_date: string;
+  log_time: string;
+  mood_rating: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface MoodLogCreate {
+  log_date: string;
+  log_time: string;
+  mood_rating: number;
+  notes?: string | null;
+}
+
+export interface MoodSummary {
+  total_logs: number;
+  average_mood: number | null;
+  lowest_mood: number | null;
+  highest_mood: number | null;
+}
+
+export interface MoodTrend {
+  log_date: string;
+  average_mood: number;
+  lowest_mood: number;
+  highest_mood: number;
+  log_count: number;
+}
+
+// Meal Template Types
+
+export interface MealTemplate {
+  id: number;
+  user_id: number;
+  name: string;
+  meal_type: MealType;
+  total_calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  fiber_g: number;
+  vitamin_c_mg: number;
+  vitamin_d_mcg: number;
+  calcium_mg: number;
+  iron_mg: number;
+  magnesium_mg: number;
+  potassium_mg: number;
+  sodium_mg: number;
+  zinc_mg: number;
+  vitamin_b6_mg: number;
+  vitamin_b12_mcg: number;
+  omega3_g: number;
+  is_favorite: boolean;
+  is_active: boolean;
+  use_count: number;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+export interface MealTemplateCreate {
+  name: string;
+  meal_type: MealType;
+  total_calories: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  vitamin_c_mg?: number;
+  vitamin_d_mcg?: number;
+  calcium_mg?: number;
+  iron_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  sodium_mg?: number;
+  zinc_mg?: number;
+  vitamin_b6_mg?: number;
+  vitamin_b12_mcg?: number;
+  omega3_g?: number;
+  is_favorite?: boolean;
+}
+
+export interface MealTemplateUpdate {
+  name?: string;
+  meal_type?: MealType;
+  total_calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+  vitamin_c_mg?: number;
+  vitamin_d_mcg?: number;
+  calcium_mg?: number;
+  iron_mg?: number;
+  magnesium_mg?: number;
+  potassium_mg?: number;
+  sodium_mg?: number;
+  zinc_mg?: number;
+  vitamin_b6_mg?: number;
+  vitamin_b12_mcg?: number;
+  omega3_g?: number;
+  is_favorite?: boolean;
+}
