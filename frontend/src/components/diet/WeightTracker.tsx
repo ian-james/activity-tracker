@@ -42,7 +42,7 @@ export function WeightTracker() {
         <h2 className="text-2xl font-bold text-gray-900">Weight Tracker</h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
         >
           {showForm ? 'Cancel' : '+ Log Weight'}
         </button>
@@ -50,7 +50,7 @@ export function WeightTracker() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600">Current Weight</p>
           <p className="text-2xl font-bold text-gray-900">
             {latestWeight ? `${latestWeight.weight} ${latestWeight.weight_unit}` : '—'}
@@ -62,7 +62,7 @@ export function WeightTracker() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600">Target Weight</p>
           <p className="text-2xl font-bold text-gray-900">
             {goals?.target_weight ? `${goals.target_weight} ${goals.weight_unit}` : '—'}
@@ -74,9 +74,9 @@ export function WeightTracker() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 p-4">
           <p className="text-sm text-gray-600">Change (90 days)</p>
-          <p className={`text-2xl font-bold ${weightChange < 0 ? 'text-green-600' : weightChange > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+          <p className={`text-2xl font-bold ${weightChange < 0 ? 'text-green-600 dark:text-green-400' : weightChange > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900'}`}>
             {weightChange > 0 ? '+' : ''}{weightChange.toFixed(1)} {latestWeight?.weight_unit || 'lbs'}
           </p>
         </div>
@@ -84,10 +84,10 @@ export function WeightTracker() {
 
       {/* Log Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 p-6 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Date *
               </label>
               <input
@@ -95,11 +95,11 @@ export function WeightTracker() {
                 value={formData.log_date}
                 onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Weight *
               </label>
               <div className="flex gap-2">
@@ -110,12 +110,12 @@ export function WeightTracker() {
                   required
                   min="0"
                   step="0.1"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <select
                   value={formData.weight_unit}
                   onChange={(e) => setFormData({ ...formData, weight_unit: e.target.value as 'lbs' | 'kg' })}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="lbs">lbs</option>
                   <option value="kg">kg</option>
@@ -124,19 +124,19 @@ export function WeightTracker() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Notes (optional)
             </label>
             <textarea
               value={formData.notes || ''}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="w-full py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
           >
             Log Weight
           </button>
@@ -144,8 +144,8 @@ export function WeightTracker() {
       )}
 
       {/* Weight Log History */}
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 dark:border-gray-700">
           <h4 className="font-semibold text-gray-900">Weight History (Last 90 days)</h4>
         </div>
         <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
@@ -178,7 +178,7 @@ export function WeightTracker() {
                       deleteWeightLog(log.id);
                     }
                   }}
-                  className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="px-3 py-1 text-sm text-red-600 dark:text-red-400 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-600 rounded-lg transition-colors"
                 >
                   Delete
                 </button>
