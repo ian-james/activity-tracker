@@ -5,6 +5,7 @@ import { NutritionSummary } from './diet/NutritionSummary';
 import { MealList } from './diet/MealList';
 import { WeightTracker } from './diet/WeightTracker';
 import { GoalsSettings } from './diet/GoalsSettings';
+import { SupplementLogger } from './diet/SupplementLogger';
 
 type View = 'today' | 'weight' | 'goals';
 
@@ -123,6 +124,15 @@ export function Diet() {
 
             {/* Nutrition Summary */}
             {summary && <NutritionSummary summary={summary} />}
+
+            {/* Quick Supplement Logger */}
+            <SupplementLogger
+              date={currentDate}
+              onLogSupplement={async (meal) => {
+                await createMeal(meal);
+                await fetchSummary();
+              }}
+            />
 
             {/* Add Meal Button */}
             <button
