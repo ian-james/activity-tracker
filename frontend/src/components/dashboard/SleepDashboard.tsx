@@ -62,6 +62,15 @@ export function SleepDashboard() {
     }
   };
 
+  const getQualityBarBg = (quality: SleepQuality) => {
+    switch (quality) {
+      case 'excellent': return 'bg-green-500 dark:bg-green-400';
+      case 'good': return 'bg-blue-500 dark:bg-blue-400';
+      case 'fair': return 'bg-yellow-500 dark:bg-yellow-400';
+      case 'poor': return 'bg-red-500 dark:bg-red-400';
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <div className="flex items-center justify-between mb-4">
@@ -192,29 +201,72 @@ export function SleepDashboard() {
             </form>
           )}
 
+          {/* Quality Distribution */}
+          {totalWithQuality > 0 && (
+            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-3">
+                Sleep Quality Distribution
+              </h4>
+              <div className="space-y-2">
+                {(['excellent', 'good', 'fair', 'poor'] as SleepQuality[]).map((quality) => {
+                  const count = qualityCounts[quality] || 0;
+                  const percentage = (count / totalWithQuality) * 100;
+
+                  return count > 0 ? (
+                    <div key={quality} className="flex items-center gap-2">
+                      <div className="w-20 text-xs font-medium text-gray-700 dark:text-gray-300 capitalize">
+                        {quality}
+                      </div>
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-6 overflow-hidden relative">
+                        <div
+                          className={`h-full ${getQualityBarBg(quality)} transition-all duration-300`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-end px-2">
+                          <span className={`text-xs font-semibold ${getQualityColor(quality)}`}>
+                            {count} night{count !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-12 text-xs font-semibold text-right text-gray-800 dark:text-gray-200">
+                        {Math.round(percentage)}%
+                      </div>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Recent Logs */}
           <div className="space-y-2">
             {sleepLogs.slice(0, 5).map((log) => (
               <div
                 key={log.id}
-                className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
                       {new Date(log.log_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
                     <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
                       {log.hours_slept}h
                     </span>
-                    {log.quality_rating && (
-                      <span className={`text-xs font-medium ${getQualityColor(log.quality_rating)}`}>
-                        {log.quality_rating}
-                      </span>
-                    )}
                   </div>
+                  {log.quality_rating && (
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getQualityBg(log.quality_rating)} ${getQualityColor(log.quality_rating)}`}>
+                        {log.quality_rating === 'excellent' && '⭐ '}
+                        {log.quality_rating === 'good' && '✓ '}
+                        {log.quality_rating === 'fair' && '~ '}
+                        {log.quality_rating === 'poor' && '✗ '}
+                        {log.quality_rating.charAt(0).toUpperCase() + log.quality_rating.slice(1)} Sleep
+                      </span>
+                    </div>
+                  )}
                   {log.notes && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{log.notes}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{log.notes}</p>
                   )}
                 </div>
                 <button
@@ -223,7 +275,7 @@ export function SleepDashboard() {
                       deleteSleepLog(log.id);
                     }
                   }}
-                  className="text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded transition-colors"
+                  className="text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded transition-colors ml-2"
                 >
                   Delete
                 </button>
