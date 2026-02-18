@@ -142,10 +142,7 @@ export function PomodoroTimer({ activities, exercises, onLogActivity, onCreateAc
   };
 
   const handleResume = () => {
-    if (phase === 'work' || phase === 'break') {
-      setCountdownSeconds(5);
-      setPhase('countdown');
-    }
+    setIsRunning(true);
   };
 
   const handleReset = () => {
