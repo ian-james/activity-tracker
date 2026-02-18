@@ -169,12 +169,17 @@ export function Diet() {
             {/* Meal List */}
             <MealList
               meals={meals}
+              currentDate={dateStr}
               onDelete={async (id) => {
                 await deleteMeal(id);
                 await fetchSummary();
               }}
               onUpdate={async (id, meal) => {
                 await updateMeal(id, meal);
+                await fetchSummary();
+              }}
+              onTemplateUsed={async () => {
+                await fetchMeals();
                 await fetchSummary();
               }}
             />

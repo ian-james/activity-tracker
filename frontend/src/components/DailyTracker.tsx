@@ -29,6 +29,11 @@ function isScheduledForDay(
   activity: Activity,
   date: Date
 ): boolean {
+  // Occasional activities are not shown in daily tracker
+  if (activity.schedule_frequency === 'occasional') {
+    return false;
+  }
+
   // Check biweekly scheduling first
   if (activity.schedule_frequency === 'biweekly') {
     if (!activity.biweekly_start_date) return false;
@@ -67,6 +72,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [skippedActivities, setSkippedActivities] = useState<Set<number>>(new Set());
   const [showSkipped, setShowSkipped] = useState(false);
+  const [showOccasional, setShowOccasional] = useState(false);
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,6 +87,7 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
 
   const completedIds = new Set(logs.map((l) => l.activity_id));
   const scheduledActivities = activities.filter((a) => isScheduledForDay(a, currentDate));
+  const occasionalActivities = activities.filter((a) => a.schedule_frequency === 'occasional');
 
   // Apply filters and search
   const filteredActivities = scheduledActivities.filter((activity) => {
@@ -975,6 +982,39 @@ export function DailyTracker({ activities, logs, currentDate, onToggle }: Props)
           {showSkipped && (
             <div className="divide-y divide-gray-200 dark:divide-gray-700 opacity-60">
               {skippedActivityList.map((activity) => renderActivityItem(activity, false))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Occasional Activities Section */}
+      {occasionalActivities.length > 0 && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setShowOccasional(!showOccasional)}
+            className="w-full flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-purple-600 dark:text-purple-400">⚡</span>
+              <span className="font-medium text-gray-800 dark:text-gray-200">
+                Occasional Activities ({occasionalActivities.length})
+              </span>
+            </div>
+            <svg
+              className={`w-5 h-5 text-gray-600 dark:text-gray-400 transition-transform ${
+                showOccasional ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showOccasional && (
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+              {occasionalActivities.map((activity) => renderActivityItem(activity, false))}
             </div>
           )}
         </div>

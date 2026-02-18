@@ -79,8 +79,8 @@ class ActivityCreate(BaseModel):
     @field_validator('schedule_frequency')
     @classmethod
     def validate_schedule_frequency(cls, v: str) -> str:
-        if v not in ['weekly', 'biweekly']:
-            raise ValueError('Schedule frequency must be weekly or biweekly')
+        if v not in ['weekly', 'biweekly', 'occasional']:
+            raise ValueError('Schedule frequency must be weekly, biweekly, or occasional')
         return v
 
 
@@ -164,8 +164,8 @@ class ActivityUpdate(BaseModel):
     def validate_schedule_frequency(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
-        if v not in ['weekly', 'biweekly']:
-            raise ValueError('Schedule frequency must be weekly or biweekly')
+        if v not in ['weekly', 'biweekly', 'occasional']:
+            raise ValueError('Schedule frequency must be weekly, biweekly, or occasional')
         return v
 
 

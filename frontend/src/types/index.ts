@@ -1,6 +1,6 @@
 export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 export type CompletionType = 'checkbox' | 'rating' | 'energy_quality';
-export type ScheduleFrequency = 'weekly' | 'biweekly';
+export type ScheduleFrequency = 'weekly' | 'biweekly' | 'occasional';
 export type SpecialDayType = 'rest' | 'recovery' | 'vacation';
 
 export const DAYS_OF_WEEK: { value: DayOfWeek; label: string; short: string }[] = [

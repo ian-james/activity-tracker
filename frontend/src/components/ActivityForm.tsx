@@ -288,6 +288,7 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
             >
               <option value="weekly">Weekly</option>
               <option value="biweekly">Every 2 Weeks (Biweekly)</option>
+              <option value="occasional">Occasional (As-Needed)</option>
             </select>
           </div>
 
@@ -310,10 +311,19 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
             </div>
           )}
 
-          <div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-              Days of Week (leave empty for every day):
-            </p>
+          {scheduleFrequency === 'occasional' && (
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
+              <p className="text-sm text-purple-700 dark:text-purple-300">
+                ⚡ This activity won't appear in your daily tracker. You can log it anytime from the "Occasional Activities" section.
+              </p>
+            </div>
+          )}
+
+          {scheduleFrequency !== 'occasional' && (
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                Days of Week (leave empty for every day):
+              </p>
             <div className="flex gap-1">
               {DAYS_OF_WEEK.map((day) => (
                 <button
@@ -331,7 +341,8 @@ export function ActivityForm({ onSubmit, onCancel, initialActivity }: Props) {
                 </button>
               ))}
             </div>
-          </div>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <button
