@@ -7,7 +7,7 @@ export function SleepDashboard() {
   const { activities, fetchActivities } = useActivities();
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showQualityDistribution, setShowQualityDistribution] = useState(false);
+  const [showRecentLogs, setShowRecentLogs] = useState(false);
 
   // Find sleep activity - look for activity with "sleep" in the name
   const sleepActivity = activities.find(a =>
@@ -187,25 +187,10 @@ export function SleepDashboard() {
           {/* Quality Distribution */}
           {totalWithQuality > 0 && (
             <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => setShowQualityDistribution(!showQualityDistribution)}
-                className="flex items-center justify-between w-full mb-3"
-              >
-                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">
-                  Sleep Quality Distribution
-                </h4>
-                <svg
-                  className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${
-                    showQualityDistribution ? 'rotate-180' : ''
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              {showQualityDistribution && <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-3">
+                Sleep Quality Distribution
+              </h4>
+              <div className="space-y-2">
                 {(['high', 'medium', 'low'] as SleepQuality[]).map((quality) => {
                   const count = qualityCounts[quality] || 0;
                   const percentage = (count / totalWithQuality) * 100;
@@ -232,12 +217,31 @@ export function SleepDashboard() {
                     </div>
                   ) : null;
                 })}
-              </div>}
+              </div>
             </div>
           )}
 
           {/* Recent Logs */}
-          <div className="space-y-2">
+          <div>
+            <button
+              onClick={() => setShowRecentLogs(!showRecentLogs)}
+              className="flex items-center justify-between w-full mb-3"
+            >
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Recent Sleep Logs
+              </h4>
+              <svg
+                className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${
+                  showRecentLogs ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showRecentLogs && <div className="space-y-2">
             {allLogs.slice(0, 5).map((log) => (
               <div
                 key={log.id}
@@ -275,6 +279,7 @@ export function SleepDashboard() {
                 No sleep logs yet. Complete the "{sleepActivity.name}" activity on the Today page to start tracking.
               </div>
             )}
+          </div>}
           </div>
         </>
       )}
