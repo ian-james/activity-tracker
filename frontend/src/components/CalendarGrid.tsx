@@ -27,14 +27,14 @@ export function CalendarGrid({ history, timeRange }: CalendarGridProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {weekRows.map((week, weekIndex) => (
         <div key={weekIndex}>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {week.map((entry) => (
-              <div key={entry.date} className="flex-1 max-w-[120px]">
+              <div key={entry.date} className="flex-1 max-w-[160px]">
                 <CalendarSquare entry={entry} />
-                <div className="mt-1 text-center">
+                <div className="mt-1.5 text-center">
                   <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     {getDayLabel(entry.date)}
                   </div>
