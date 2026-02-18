@@ -52,6 +52,7 @@ export interface Log {
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
   rating_value?: number | null;
+  duration_hours?: number | null;
   notes?: string | null;
   created_at: string;
 }
@@ -62,6 +63,7 @@ export interface LogCreate {
   energy_level?: EnergyLevel | null;
   quality_rating?: QualityRating | null;
   rating_value?: number | null;
+  duration_hours?: number | null;
   notes?: string | null;
 }
 

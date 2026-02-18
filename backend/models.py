@@ -191,6 +191,7 @@ class LogCreate(BaseModel):
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
     rating_value: Optional[int] = None
+    duration_hours: Optional[float] = None
     notes: Optional[str] = None
 
     @field_validator('energy_level')
@@ -220,6 +221,15 @@ class LogCreate(BaseModel):
             raise ValueError('Rating value must be between 1 and 10')
         return v
 
+    @field_validator('duration_hours')
+    @classmethod
+    def validate_duration_hours(cls, v: Optional[float]) -> Optional[float]:
+        if v is None:
+            return v
+        if v < 0 or v > 24:
+            raise ValueError('Duration must be between 0 and 24 hours')
+        return v
+
 
 class Log(BaseModel):
     id: int
@@ -228,6 +238,7 @@ class Log(BaseModel):
     energy_level: Optional[str] = None
     quality_rating: Optional[str] = None
     rating_value: Optional[int] = None
+    duration_hours: Optional[float] = None
     notes: Optional[str] = None
     created_at: datetime
 

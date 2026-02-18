@@ -442,6 +442,13 @@ def init_db():
             cursor.execute("ALTER TABLE activities ADD COLUMN calories_burned INTEGER DEFAULT 0")
             logger.info("Added calories_burned column to activities table")
 
+        # Migration: add duration_hours to activity_logs for sleep tracking
+        cursor.execute("PRAGMA table_info(activity_logs)")
+        log_columns = [col[1] for col in cursor.fetchall()]
+        if 'duration_hours' not in log_columns:
+            cursor.execute("ALTER TABLE activity_logs ADD COLUMN duration_hours REAL DEFAULT NULL")
+            logger.info("Added duration_hours column to activity_logs table")
+
         # Migration: add additional micronutrients to nutrition_goals
         cursor.execute("PRAGMA table_info(nutrition_goals)")
         goals_columns = [col[1] for col in cursor.fetchall()]

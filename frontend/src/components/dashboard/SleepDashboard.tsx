@@ -1,40 +1,62 @@
 import { useState, useEffect } from 'react';
-import { useSleepLogs } from '../../hooks/useApi';
-import { SleepLogCreate, SleepQuality } from '../../types';
+import { useActivities, useLogs } from '../../hooks/useApi';
+import { SleepQuality, LogCreate } from '../../types';
 
 export function SleepDashboard() {
   const [days, setDays] = useState<7 | 14 | 30>(7);
-  const { sleepLogs, loading, fetchSleepLogs, logSleep, deleteSleepLog } = useSleepLogs(days);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState<SleepLogCreate>({
-    log_date: new Date().toISOString().split('T')[0],
-    hours_slept: 8,
-    quality_rating: null,
-    notes: '',
-  });
+  const { activities, fetchActivities } = useActivities();
+  const [allLogs, setAllLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Find sleep activity - look for activity with "sleep" in the name
+  const sleepActivity = activities.find(a =>
+    a.is_active && a.name.toLowerCase().includes('sleep')
+  );
 
   useEffect(() => {
-    fetchSleepLogs();
-  }, [fetchSleepLogs]);
+    fetchActivities();
+  }, [fetchActivities]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await logSleep(formData);
-    setShowForm(false);
-    setFormData({
-      log_date: new Date().toISOString().split('T')[0],
-      hours_slept: 8,
-      quality_rating: null,
-      notes: '',
-    });
-  };
+  useEffect(() => {
+    if (!sleepActivity) return;
+
+    const fetchSleepLogs = async () => {
+      setLoading(true);
+      try {
+        const promises = [];
+        const today = new Date();
+        for (let i = 0; i < days; i++) {
+          const date = new Date(today);
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+
+          promises.push(
+            fetch(`/api/logs?date=${dateStr}`, { credentials: 'include' })
+              .then(res => res.ok ? res.json() : [])
+              .catch(() => [])
+          );
+        }
+        const results = await Promise.all(promises);
+        const logs = results
+          .flat()
+          .filter(log => log.activity_id === sleepActivity.id)
+          .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+        setAllLogs(logs);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSleepLogs();
+  }, [sleepActivity, days]);
 
   // Calculate averages
-  const avgHours = sleepLogs.length > 0
-    ? sleepLogs.reduce((sum, log) => sum + log.hours_slept, 0) / sleepLogs.length
+  const logsWithDuration = allLogs.filter(log => log.duration_hours);
+  const avgHours = logsWithDuration.length > 0
+    ? logsWithDuration.reduce((sum, log) => sum + log.duration_hours, 0) / logsWithDuration.length
     : 0;
 
-  const qualityCounts = sleepLogs.reduce((acc, log) => {
+  const qualityCounts = allLogs.reduce((acc, log) => {
     if (log.quality_rating) {
       acc[log.quality_rating] = (acc[log.quality_rating] || 0) + 1;
     }
@@ -70,6 +92,23 @@ export function SleepDashboard() {
       case 'poor': return 'bg-red-500 dark:bg-red-400';
     }
   };
+
+  if (!sleepActivity) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="text-xl">😴</span>
+            Sleep Quality & Time
+          </h3>
+        </div>
+        <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+          <p className="mb-2">No Sleep activity found.</p>
+          <p className="text-sm">Create an activity with "Sleep" in the name on the Activities page to start tracking sleep.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
@@ -109,7 +148,7 @@ export function SleepDashboard() {
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 text-center">
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {sleepLogs.length}
+                {allLogs.length}
               </div>
               <div className="text-xs text-gray-600 dark:text-gray-400">Nights Logged</div>
             </div>
@@ -131,75 +170,13 @@ export function SleepDashboard() {
             )}
           </div>
 
-          {/* Quick Log Button */}
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="w-full mb-4 py-2 bg-purple-600 dark:bg-purple-500 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors text-sm font-medium"
-          >
-            {showForm ? 'Cancel' : '+ Log Sleep'}
-          </button>
-
-          {/* Log Form */}
-          {showForm && (
-            <form onSubmit={handleSubmit} className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.log_date}
-                    onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
-                    required
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Hours Slept
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.hours_slept}
-                    onChange={(e) => setFormData({ ...formData, hours_slept: parseFloat(e.target.value) || 0 })}
-                    required
-                    min="0"
-                    max="24"
-                    step="0.5"
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Quality
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {(['poor', 'fair', 'good', 'excellent'] as SleepQuality[]).map((quality) => (
-                    <button
-                      key={quality}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, quality_rating: quality })}
-                      className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                        formData.quality_rating === quality
-                          ? getQualityBg(quality) + ' ' + getQualityColor(quality) + ' ring-2 ring-offset-1'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                      }`}
-                    >
-                      {quality.charAt(0).toUpperCase() + quality.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-              >
-                Save Sleep Log
-              </button>
-            </form>
-          )}
+          {/* Info about logging */}
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-xs text-blue-800 dark:text-blue-300">
+              💡 <strong>Tip:</strong> Log sleep from the Today page by completing the "{sleepActivity.name}" activity.
+              Add duration and quality rating when logging.
+            </p>
+          </div>
 
           {/* Quality Distribution */}
           {totalWithQuality > 0 && (
@@ -240,7 +217,7 @@ export function SleepDashboard() {
 
           {/* Recent Logs */}
           <div className="space-y-2">
-            {sleepLogs.slice(0, 5).map((log) => (
+            {allLogs.slice(0, 5).map((log) => (
               <div
                 key={log.id}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
@@ -248,15 +225,17 @@ export function SleepDashboard() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
-                      {new Date(log.log_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {new Date(log.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                    <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                      {log.hours_slept}h
-                    </span>
+                    {log.duration_hours && (
+                      <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                        {log.duration_hours}h
+                      </span>
+                    )}
                   </div>
                   {log.quality_rating && (
                     <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getQualityBg(log.quality_rating)} ${getQualityColor(log.quality_rating)}`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getQualityBg(log.quality_rating as SleepQuality)} ${getQualityColor(log.quality_rating as SleepQuality)}`}>
                         {log.quality_rating === 'excellent' && '⭐ '}
                         {log.quality_rating === 'good' && '✓ '}
                         {log.quality_rating === 'fair' && '~ '}
@@ -269,21 +248,11 @@ export function SleepDashboard() {
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">{log.notes}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => {
-                    if (confirm('Delete this sleep log?')) {
-                      deleteSleepLog(log.id);
-                    }
-                  }}
-                  className="text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-2 py-1 rounded transition-colors ml-2"
-                >
-                  Delete
-                </button>
               </div>
             ))}
-            {sleepLogs.length === 0 && (
+            {allLogs.length === 0 && (
               <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
-                No sleep logs yet. Click "+ Log Sleep" to get started.
+                No sleep logs yet. Complete the "{sleepActivity.name}" activity on the Today page to start tracking.
               </div>
             )}
           </div>
